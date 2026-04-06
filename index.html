@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PowerPlayAI — Community Results</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --green: #3fb950;
+  --red: #f85149;
+  --yellow: #d29922;
+  --orange: #db6d28;
+  --purple: #bc8cff;
+  --pink: #f778ba;
+  --cyan: #39d2c0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; }
+a { color: var(--accent); text-decoration: none; }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+/* Header */
+.hero { text-align: center; padding: 48px 20px 32px; }
+.hero h1 { font-size: 2rem; font-weight: 700; margin-bottom: 8px; }
+.hero p { color: var(--text-muted); font-size: 1rem; }
+
+/* Stat Cards */
+.stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px; }
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+.stat-card .value { font-size: 2rem; font-weight: 700; color: var(--accent); }
+.stat-card .value.green { color: var(--green); }
+.stat-card .value.yellow { color: var(--yellow); }
+.stat-card .label { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+.tab { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 8px 20px; cursor: pointer; color: var(--text-muted); font-size: 0.9rem; transition: all 0.2s; }
+.tab:hover { border-color: var(--accent); color: var(--text); }
+.tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* Table */
+.table-wrap { overflow-x: auto; margin-bottom: 32px; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; }
+th { background: #1c2129; color: var(--text-muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; }
+th:hover { color: var(--accent); }
+th.sorted-asc::after { content: ' \u25B2'; font-size: 0.7rem; }
+th.sorted-desc::after { content: ' \u25BC'; font-size: 0.7rem; }
+td { padding: 12px 16px; border-top: 1px solid var(--border); font-size: 0.9rem; white-space: nowrap; }
+tr:hover td { background: #1c2129; }
+tr.top-performer td { border-left: 3px solid var(--green); }
+.money { color: var(--green); font-weight: 600; }
+.hit-rate { font-weight: 600; }
+.hit-rate.good { color: var(--green); }
+.hit-rate.mid { color: var(--yellow); }
+.hit-rate.low { color: var(--text-muted); }
+
+/* Chart */
+.chart-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 32px; }
+.chart-section h2 { font-size: 1.1rem; margin-bottom: 16px; }
+.chart-container { position: relative; height: 300px; }
+
+/* Recent Feed */
+.feed-section { margin-bottom: 48px; }
+.feed-section h2 { font-size: 1.1rem; margin-bottom: 16px; }
+.feed-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.feed-lottery { font-weight: 600; font-size: 0.8rem; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; }
+.feed-lottery.powerball { background: #1a3a5c; color: #58a6ff; }
+.feed-lottery.megaMillions { background: #3a2a1a; color: #d29922; }
+.feed-lottery.euroMillions { background: #1a3a2a; color: #3fb950; }
+.feed-model { color: var(--text-muted); font-size: 0.85rem; min-width: 100px; }
+.feed-result { font-weight: 600; flex: 1; }
+.feed-result.hit { color: var(--green); }
+.feed-result.miss { color: var(--text-muted); }
+.feed-prize { color: var(--green); font-weight: 600; min-width: 60px; text-align: right; }
+.feed-date { color: var(--text-muted); font-size: 0.8rem; }
+
+/* Loading / Error */
+.loading { text-align: center; padding: 80px 20px; color: var(--text-muted); }
+.loading .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.error { text-align: center; padding: 80px 20px; color: var(--red); }
+
+/* Footer */
+footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border); }
+
+@media (max-width: 640px) {
+  .hero h1 { font-size: 1.5rem; }
+  .stat-cards { grid-template-columns: 1fr 1fr; }
+  .stat-card .value { font-size: 1.5rem; }
+  td, th { padding: 8px 10px; font-size: 0.8rem; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="hero">
+    <h1>PowerPlayAI Community Results</h1>
+    <p>Anonymous prediction results from PowerPlayAI users worldwide</p>
+  </div>
+
+  <div id="app">
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Loading community results...</p>
+    </div>
+    <div class="error" id="error" style="display:none">
+      <p>Unable to load results. Please try again later.</p>
+    </div>
+    <div id="content" style="display:none">
+
+      <!-- Stat Cards -->
+      <div class="stat-cards">
+        <div class="stat-card">
+          <div class="value" id="totalPredictions">—</div>
+          <div class="label">Total Predictions</div>
+        </div>
+        <div class="stat-card">
+          <div class="value green" id="totalHits">—</div>
+          <div class="label">Total Hits (1+ match)</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="totalMisses">—</div>
+          <div class="label">Total Misses</div>
+        </div>
+        <div class="stat-card">
+          <div class="value yellow" id="moneyWonUSD">—</div>
+          <div class="label">Money Won (USD)</div>
+        </div>
+        <div class="stat-card">
+          <div class="value yellow" id="moneyWonEUR" style="display:none">—</div>
+          <div class="label" id="moneyWonEURLabel" style="display:none">Money Won (EUR)</div>
+        </div>
+      </div>
+
+      <!-- Lottery Filter Tabs -->
+      <div class="tabs" id="lotteryTabs">
+        <div class="tab active" data-filter="all">All</div>
+        <div class="tab" data-filter="powerball">Powerball</div>
+        <div class="tab" data-filter="megaMillions">Mega Millions</div>
+        <div class="tab" data-filter="euroMillions">EuroMillions</div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="table-wrap">
+        <table id="leaderboard">
+          <thead>
+            <tr>
+              <th data-col="rank">#</th>
+              <th data-col="model">Model</th>
+              <th data-col="predictions">Predictions</th>
+              <th data-col="hits">Hits</th>
+              <th data-col="misses">Misses</th>
+              <th data-col="hitRate">Hit Rate</th>
+              <th data-col="avgMatches">Avg Matches</th>
+              <th data-col="moneyWon">Money Won</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Match Distribution Chart -->
+      <div class="chart-section">
+        <h2>Match Distribution by Model</h2>
+        <div class="chart-container">
+          <canvas id="distributionChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Recent Results -->
+      <div class="feed-section">
+        <h2>Recent Results</h2>
+        <div id="recentFeed"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>Data is anonymous and collected automatically from PowerPlayAI app users. Updated every 60 seconds.</p>
+</footer>
+
+<script>
+// ---- CONFIG ----
+// Replace with your actual Cloudflare Worker URL after deployment
+const API_URL = 'https://powerplayai-api.YOUR_SUBDOMAIN.workers.dev/stats';
+const REFRESH_INTERVAL = 60000;
+
+const MODEL_DISPLAY = {
+  base: 'Base Model',
+  enhanced: 'Enhanced Model',
+  randomBalanced: 'Random Balanced',
+  quantum: 'Quantum',
+  nexus: 'Nexus AI',
+  bayesian: 'Bayesian',
+  adaptiveAI: 'Adaptive AI',
+};
+
+const MODEL_COLORS = {
+  base: '#8b949e',
+  enhanced: '#58a6ff',
+  randomBalanced: '#d29922',
+  quantum: '#bc8cff',
+  nexus: '#f778ba',
+  bayesian: '#39d2c0',
+  adaptiveAI: '#db6d28',
+};
+
+const LOTTERY_DISPLAY = {
+  powerball: 'Powerball',
+  megaMillions: 'Mega Millions',
+  euroMillions: 'EuroMillions',
+};
+
+let currentData = null;
+let currentFilter = 'all';
+let sortCol = 'moneyWon';
+let sortDir = 'desc';
+let chart = null;
+
+// ---- DATA LOADING ----
+
+async function loadData() {
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    currentData = await res.json();
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('error').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+    render();
+  } catch (e) {
+    console.error('Failed to load stats:', e);
+    if (!currentData) {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error').style.display = 'block';
+    }
+  }
+}
+
+// ---- AGGREGATION ----
+
+function getFilteredRows() {
+  if (!currentData) return [];
+  const rows = [];
+  const lotteryTypes = currentFilter === 'all'
+    ? Object.keys(currentData.models)
+    : [currentFilter];
+
+  for (const lt of lotteryTypes) {
+    const models = currentData.models[lt];
+    if (!models) continue;
+    for (const [mt, stats] of Object.entries(models)) {
+      const existing = rows.find(r => r.model === mt);
+      if (existing) {
+        existing.predictions += stats.totalPredictions;
+        existing.hits += stats.hits;
+        existing.misses += stats.totalPredictions - stats.hits;
+        existing.specialMatches += stats.specialMatches;
+        existing.moneyWon += stats.moneyWon;
+        existing.jackpots += stats.jackpots;
+        for (const [k, v] of Object.entries(stats.matchDistribution)) {
+          existing.matchDist[k] = (existing.matchDist[k] || 0) + v;
+        }
+        existing.currency = lt === 'euroMillions' ? 'mixed' : (existing.currency === 'EUR' ? 'mixed' : existing.currency);
+      } else {
+        rows.push({
+          model: mt,
+          predictions: stats.totalPredictions,
+          hits: stats.hits,
+          misses: stats.totalPredictions - stats.hits,
+          specialMatches: stats.specialMatches,
+          moneyWon: stats.moneyWon,
+          jackpots: stats.jackpots,
+          matchDist: { ...stats.matchDistribution },
+          currency: lt === 'euroMillions' ? 'EUR' : 'USD',
+        });
+      }
+    }
+  }
+  return rows;
+}
+
+function getRecentResults() {
+  if (!currentData) return [];
+  const all = [];
+  const lotteryTypes = currentFilter === 'all'
+    ? Object.keys(currentData.models)
+    : [currentFilter];
+
+  for (const lt of lotteryTypes) {
+    const models = currentData.models[lt];
+    if (!models) continue;
+    for (const [mt, stats] of Object.entries(models)) {
+      for (const r of (stats.recentResults || [])) {
+        all.push({ ...r, lotteryType: lt, modelType: mt });
+      }
+    }
+  }
+  all.sort((a, b) => (b.timestamp || '').localeCompare(a.timestamp || ''));
+  return all.slice(0, 20);
+}
+
+// ---- RENDERING ----
+
+function render() {
+  renderStatCards();
+  renderLeaderboard();
+  renderChart();
+  renderFeed();
+}
+
+function renderStatCards() {
+  const t = currentData.totals;
+  document.getElementById('totalPredictions').textContent = t.predictions.toLocaleString();
+  document.getElementById('totalHits').textContent = t.hits.toLocaleString();
+  document.getElementById('totalMisses').textContent = (t.predictions - t.hits).toLocaleString();
+  document.getElementById('moneyWonUSD').textContent = '$' + t.moneyWonUSD.toLocaleString();
+
+  const eurCard = document.getElementById('moneyWonEUR');
+  const eurLabel = document.getElementById('moneyWonEURLabel');
+  if (t.moneyWonEUR > 0) {
+    eurCard.textContent = '\u20AC' + t.moneyWonEUR.toLocaleString();
+    eurCard.style.display = '';
+    eurLabel.style.display = '';
+  } else {
+    eurCard.style.display = 'none';
+    eurLabel.style.display = 'none';
+  }
+}
+
+function renderLeaderboard() {
+  const rows = getFilteredRows();
+
+  // Sort
+  rows.sort((a, b) => {
+    let av, bv;
+    switch (sortCol) {
+      case 'model': av = MODEL_DISPLAY[a.model] || a.model; bv = MODEL_DISPLAY[b.model] || b.model; return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      case 'predictions': av = a.predictions; bv = b.predictions; break;
+      case 'hits': av = a.hits; bv = b.hits; break;
+      case 'misses': av = a.misses; bv = b.misses; break;
+      case 'hitRate': av = a.predictions ? a.hits / a.predictions : 0; bv = b.predictions ? b.hits / b.predictions : 0; break;
+      case 'avgMatches': av = avgMatches(a); bv = avgMatches(b); break;
+      case 'moneyWon': av = a.moneyWon; bv = b.moneyWon; break;
+      default: av = a.moneyWon; bv = b.moneyWon;
+    }
+    return sortDir === 'asc' ? av - bv : bv - av;
+  });
+
+  // Update header classes
+  document.querySelectorAll('#leaderboard th').forEach(th => {
+    th.classList.remove('sorted-asc', 'sorted-desc');
+    if (th.dataset.col === sortCol) {
+      th.classList.add(sortDir === 'asc' ? 'sorted-asc' : 'sorted-desc');
+    }
+  });
+
+  const tbody = document.getElementById('leaderboardBody');
+  tbody.innerHTML = '';
+
+  const topMoney = rows.length ? Math.max(...rows.map(r => r.moneyWon)) : 0;
+
+  rows.forEach((row, i) => {
+    const hitRate = row.predictions ? ((row.hits / row.predictions) * 100) : 0;
+    const avg = avgMatches(row);
+    const currencySymbol = currentFilter === 'euroMillions' ? '\u20AC' : (currentFilter === 'all' && row.currency === 'EUR') ? '\u20AC' : '$';
+    const isTop = row.moneyWon === topMoney && topMoney > 0;
+
+    const tr = document.createElement('tr');
+    if (isTop) tr.classList.add('top-performer');
+
+    const hrClass = hitRate >= 60 ? 'good' : hitRate >= 40 ? 'mid' : 'low';
+
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td><strong>${MODEL_DISPLAY[row.model] || row.model}</strong></td>
+      <td>${row.predictions.toLocaleString()}</td>
+      <td>${row.hits.toLocaleString()}</td>
+      <td>${row.misses.toLocaleString()}</td>
+      <td><span class="hit-rate ${hrClass}">${hitRate.toFixed(1)}%</span></td>
+      <td>${avg.toFixed(2)}</td>
+      <td><span class="money">${currencySymbol}${row.moneyWon.toLocaleString()}</span></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function avgMatches(row) {
+  if (!row.predictions) return 0;
+  let sum = 0;
+  for (const [k, v] of Object.entries(row.matchDist)) {
+    sum += parseInt(k) * v;
+  }
+  return sum / row.predictions;
+}
+
+function renderChart() {
+  const rows = getFilteredRows();
+  const labels = ['0 matches', '1 match', '2 matches', '3 matches', '4 matches', '5 matches'];
+  const datasets = rows.map(row => ({
+    label: MODEL_DISPLAY[row.model] || row.model,
+    data: [0, 1, 2, 3, 4, 5].map(i => row.matchDist[String(i)] || 0),
+    backgroundColor: MODEL_COLORS[row.model] || '#8b949e',
+    borderRadius: 4,
+  }));
+
+  if (chart) chart.destroy();
+
+  const ctx = document.getElementById('distributionChart').getContext('2d');
+  chart = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#e6edf3', font: { size: 11 } } },
+      },
+      scales: {
+        x: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#8b949e' }, grid: { color: '#21262d' }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+function renderFeed() {
+  const results = getRecentResults();
+  const feed = document.getElementById('recentFeed');
+
+  if (results.length === 0) {
+    feed.innerHTML = '<p style="color:var(--text-muted);padding:20px;text-align:center;">No results yet. Check back after draws are verified.</p>';
+    return;
+  }
+
+  feed.innerHTML = results.map(r => {
+    const isHit = r.mainMatches > 0 || r.specialMatch;
+    const ltClass = r.lotteryType;
+    const prize = r.prize || 0;
+    const currency = r.currency === 'EUR' ? '\u20AC' : '$';
+    const matchText = r.mainMatches > 0
+      ? `${r.mainMatches} of 5 main${r.specialMatch ? ' + special' : ''}`
+      : (r.specialMatch ? 'Special only' : 'No matches');
+
+    return `
+      <div class="feed-item">
+        <span class="feed-lottery ${ltClass}">${LOTTERY_DISPLAY[r.lotteryType] || r.lotteryType}</span>
+        <span class="feed-model">${MODEL_DISPLAY[r.modelType] || r.modelType}</span>
+        <span class="feed-result ${isHit ? 'hit' : 'miss'}">${matchText}</span>
+        <span class="feed-prize">${prize > 0 ? currency + prize.toLocaleString() : (isHit ? '—' : '')}</span>
+        <span class="feed-date">${r.drawDate || ''}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ---- EVENT HANDLERS ----
+
+// Tab switching
+document.getElementById('lotteryTabs').addEventListener('click', e => {
+  if (!e.target.classList.contains('tab')) return;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  e.target.classList.add('active');
+  currentFilter = e.target.dataset.filter;
+  render();
+});
+
+// Column sorting
+document.querySelectorAll('#leaderboard th').forEach(th => {
+  th.addEventListener('click', () => {
+    const col = th.dataset.col;
+    if (!col) return;
+    if (sortCol === col) {
+      sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+    } else {
+      sortCol = col;
+      sortDir = 'desc';
+    }
+    renderLeaderboard();
+  });
+});
+
+// ---- INIT ----
+loadData();
+setInterval(loadData, REFRESH_INTERVAL);
+</script>
+</body>
+</html>
