@@ -194,7 +194,7 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
 // ---- CONFIG ----
 // Replace with your actual Cloudflare Worker URL after deployment
 const API_URL = 'https://powerplayai-api.colsonrice.workers.dev/stats';
-const REFRESH_INTERVAL = 60000;
+const REFRESH_INTERVAL = 300000; // 5 minutes — data updates at most a few times per draw day
 
 const MODEL_DISPLAY = {
   base: 'Base Model',
@@ -493,7 +493,17 @@ document.querySelectorAll('#leaderboard th').forEach(th => {
 
 // ---- INIT ----
 loadData();
-setInterval(loadData, REFRESH_INTERVAL);
+// Pause polling when tab is hidden to avoid wasting KV reads
+let refreshTimer = setInterval(loadData, REFRESH_INTERVAL);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  } else {
+    loadData(); // Refresh immediately when tab becomes visible
+    refreshTimer = setInterval(loadData, REFRESH_INTERVAL);
+  }
+});
 </script>
 </body>
 </html>
