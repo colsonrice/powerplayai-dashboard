@@ -88,6 +88,15 @@ tr.top-performer td { border-left: 3px solid var(--green); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .error { text-align: center; padding: 80px 20px; color: var(--red); }
 
+/* Delta badges */
+.delta { display: inline-block; font-size: 0.75rem; font-weight: 600; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+.delta.up { background: rgba(63,185,80,0.15); color: var(--green); }
+.delta.down { background: rgba(248,81,73,0.15); color: var(--red); }
+.delta.flat { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+.stat-card .value.purple { color: var(--purple); }
+.stat-card .value.cyan { color: var(--cyan); }
+.sub-meta { color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; }
+
 /* Footer */
 footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border); }
 
@@ -141,6 +150,24 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
         </div>
       </div>
 
+      <!-- Subscriber Cards (hidden until data exists) -->
+      <div class="stat-cards" id="subscriberCards" style="display:none">
+        <div class="stat-card">
+          <div class="value purple" id="activeSubscribers">—</div>
+          <div class="label">Active Subscribers</div>
+          <div class="sub-meta" id="subDeltas"></div>
+        </div>
+        <div class="stat-card">
+          <div class="value cyan" id="totalUsers">—</div>
+          <div class="label">Total Users (90d)</div>
+          <div class="sub-meta" id="userDeltas"></div>
+        </div>
+        <div class="stat-card">
+          <div class="value green" id="conversionRate">—</div>
+          <div class="label">Conversion Rate</div>
+        </div>
+      </div>
+
       <!-- Lottery Filter Tabs -->
       <div class="tabs" id="lotteryTabs">
         <div class="tab active" data-filter="all">All</div>
@@ -173,6 +200,14 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
         <h2>Match Distribution by Model</h2>
         <div class="chart-container">
           <canvas id="distributionChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Subscriber History Chart (hidden until data exists) -->
+      <div class="chart-section" id="subscriberChartSection" style="display:none">
+        <h2>Subscriber History</h2>
+        <div class="chart-container">
+          <canvas id="subscriberChart"></canvas>
         </div>
       </div>
 
@@ -227,6 +262,7 @@ let currentFilter = 'all';
 let sortCol = 'moneyWon';
 let sortDir = 'desc';
 let chart = null;
+let subChart = null;
 
 // ---- DATA LOADING ----
 
@@ -315,6 +351,7 @@ function getRecentResults() {
 
 function render() {
   renderStatCards();
+  renderSubscribers();
   renderLeaderboard();
   renderChart();
   renderFeed();
@@ -463,6 +500,110 @@ function renderFeed() {
       </div>
     `;
   }).join('');
+}
+
+// ---- SUBSCRIBER RENDERING ----
+
+function renderSubscribers() {
+  const sub = currentData && currentData.subscribers;
+  const cardsEl = document.getElementById('subscriberCards');
+  const chartSection = document.getElementById('subscriberChartSection');
+
+  if (!sub || !sub.total) {
+    cardsEl.style.display = 'none';
+    chartSection.style.display = 'none';
+    return;
+  }
+
+  cardsEl.style.display = '';
+  chartSection.style.display = '';
+
+  document.getElementById('activeSubscribers').textContent = sub.subscribed.toLocaleString();
+  document.getElementById('totalUsers').textContent = sub.total.toLocaleString();
+  const rate = sub.total > 0 ? ((sub.subscribed / sub.total) * 100).toFixed(1) : '0';
+  document.getElementById('conversionRate').textContent = rate + '%';
+
+  // Compute deltas from snapshots
+  const snaps = sub.snapshots || [];
+  if (snaps.length > 0) {
+    const latest = snaps[snaps.length - 1];
+    const weekAgo = snaps.length > 7 ? snaps[snaps.length - 8] : snaps[0];
+    const monthAgo = snaps.length > 30 ? snaps[snaps.length - 31] : snaps[0];
+
+    const weekSubDelta = latest.subscribed - weekAgo.subscribed;
+    const monthSubDelta = latest.subscribed - monthAgo.subscribed;
+    document.getElementById('subDeltas').innerHTML =
+      `7d: ${deltaTag(weekSubDelta)} &nbsp; 30d: ${deltaTag(monthSubDelta)}`;
+
+    const weekUserDelta = latest.total - weekAgo.total;
+    const monthUserDelta = latest.total - monthAgo.total;
+    document.getElementById('userDeltas').innerHTML =
+      `7d: ${deltaTag(weekUserDelta)} &nbsp; 30d: ${deltaTag(monthUserDelta)}`;
+  }
+
+  // Render chart
+  if (subChart) subChart.destroy();
+  if (snaps.length < 2) return;
+
+  const labels = snaps.map(s => {
+    const d = new Date(s.date + 'T00:00:00Z');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  });
+
+  const ctx = document.getElementById('subscriberChart').getContext('2d');
+  subChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Total Users',
+          data: snaps.map(s => s.total),
+          borderColor: '#39d2c0',
+          backgroundColor: 'rgba(57,210,192,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: snaps.length > 30 ? 0 : 3,
+        },
+        {
+          label: 'Subscribers',
+          data: snaps.map(s => s.subscribed),
+          borderColor: '#bc8cff',
+          backgroundColor: 'rgba(188,140,255,0.1)',
+          fill: true,
+          tension: 0.3,
+          pointRadius: snaps.length > 30 ? 0 : 3,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { labels: { color: '#e6edf3', font: { size: 11 } } },
+        tooltip: {
+          callbacks: {
+            afterBody(items) {
+              const idx = items[0].dataIndex;
+              const s = snaps[idx];
+              return s ? `Free: ${s.free} | New users: ${s.newUsers}` : '';
+            }
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#8b949e', maxTicksLimit: 12 }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#8b949e', precision: 0 }, grid: { color: '#21262d' }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+function deltaTag(val) {
+  if (val > 0) return `<span class="delta up">+${val}</span>`;
+  if (val < 0) return `<span class="delta down">${val}</span>`;
+  return `<span class="delta flat">0</span>`;
 }
 
 // ---- EVENT HANDLERS ----
