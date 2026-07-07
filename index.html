@@ -211,6 +211,18 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
         </div>
       </div>
 
+      <!-- Funnel & Behavior (hidden until events exist) -->
+      <div class="chart-section" id="eventsSection" style="display:none">
+        <h2>Funnel &amp; Behavior</h2>
+        <div class="table-wrap" style="margin-bottom:16px">
+          <table>
+            <thead><tr><th>Paywall Source</th><th>Views</th><th>Subscribes</th><th>Convert</th></tr></thead>
+            <tbody id="paywallBody"></tbody>
+          </table>
+        </div>
+        <div id="eventMisc" class="sub-meta"></div>
+      </div>
+
       <!-- Recent Results -->
       <div class="feed-section">
         <h2>Recent Results</h2>
@@ -352,6 +364,7 @@ function getRecentResults() {
 function render() {
   renderStatCards();
   renderSubscribers();
+  renderEvents();
   renderLeaderboard();
   renderChart();
   renderFeed();
@@ -604,6 +617,35 @@ function deltaTag(val) {
   if (val > 0) return `<span class="delta up">+${val}</span>`;
   if (val < 0) return `<span class="delta down">${val}</span>`;
   return `<span class="delta flat">0</span>`;
+}
+
+// ---- FUNNEL & BEHAVIOR ----
+
+function renderEvents() {
+  const ev = currentData && currentData.events;
+  const section = document.getElementById('eventsSection');
+  if (!ev || !ev.paywall_view) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const views = ev.paywall_view || {};
+  const subs = ev.subscribe || {};
+  const sources = Array.from(new Set([...Object.keys(views), ...Object.keys(subs)])).sort();
+  document.getElementById('paywallBody').innerHTML = sources.map(s => {
+    const v = views[s] || 0, sub = subs[s] || 0;
+    const r = v ? sub / v : 0;
+    const cls = r >= 0.1 ? 'good' : r >= 0.05 ? 'mid' : 'low';
+    const conv = v ? (r * 100).toFixed(1) + '%' : '—';
+    return `<tr><td><strong>${s}</strong></td><td>${v.toLocaleString()}</td><td>${sub.toLocaleString()}</td><td><span class="hit-rate ${cls}">${conv}</span></td></tr>`;
+  }).join('');
+
+  const optin = ev.notif_optin || {};
+  const granted = optin.granted || 0, denied = optin.denied || 0;
+  const optinRate = (granted + denied) ? Math.round(granted / (granted + denied) * 100) + '%' : '—';
+  const sum = o => Object.values(o || {}).reduce((a, b) => a + b, 0);
+  document.getElementById('eventMisc').innerHTML =
+    `Notification opt-in: <strong>${optinRate}</strong> (${granted}/${granted + denied}) &nbsp;·&nbsp; ` +
+    `Shares: <strong>${sum(ev.share)}</strong> &nbsp;·&nbsp; Reveals: <strong>${sum(ev.reveal)}</strong> &nbsp;·&nbsp; ` +
+    `Review prompts: <strong>${sum(ev.review_prompt)}</strong>`;
 }
 
 // ---- EVENT HANDLERS ----
