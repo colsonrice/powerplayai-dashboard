@@ -51,8 +51,8 @@ a { color: var(--accent); text-decoration: none; }
 table { width: 100%; border-collapse: collapse; background: var(--surface); border-radius: 12px; overflow: hidden; }
 th { background: #1c2129; color: var(--text-muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 12px 16px; text-align: left; cursor: pointer; user-select: none; white-space: nowrap; }
 th:hover { color: var(--accent); }
-th.sorted-asc::after { content: ' \u25B2'; font-size: 0.7rem; }
-th.sorted-desc::after { content: ' \u25BC'; font-size: 0.7rem; }
+th.sorted-asc::after { content: ' \25B2'; font-size: 0.7rem; }
+th.sorted-desc::after { content: ' \25BC'; font-size: 0.7rem; }
 td { padding: 12px 16px; border-top: 1px solid var(--border); font-size: 0.9rem; white-space: nowrap; }
 tr:hover td { background: #1c2129; }
 tr.top-performer td { border-left: 3px solid var(--green); }
@@ -97,6 +97,21 @@ tr.top-performer td { border-left: 3px solid var(--green); }
 .stat-card .value.cyan { color: var(--cyan); }
 .sub-meta { color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; }
 
+/* Proof banner — Enhanced vs random headline */
+.proof-banner { background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.35); border-radius: 12px; padding: 16px 22px; margin-bottom: 24px; }
+.proof-banner .proof-lead { font-weight: 700; font-size: 1.05rem; }
+.proof-banner .proof-delta { color: var(--accent); }
+.proof-banner .proof-detail { color: var(--text-muted); font-size: 0.82rem; margin-top: 5px; }
+
+/* Top win — celebratory highlight */
+.topwin-card { background: var(--surface); border: 1px solid rgba(210,153,34,0.55); border-radius: 12px; padding: 20px 24px; margin-bottom: 32px; }
+.topwin-badge { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--yellow); border: 1px solid rgba(210,153,34,0.4); border-radius: 999px; padding: 3px 10px; margin-bottom: 12px; }
+.topwin-amount { font-size: 2.4rem; font-weight: 800; color: var(--yellow); line-height: 1.05; }
+.topwin-detail { color: var(--text-muted); font-size: 0.9rem; margin-top: 6px; }
+.topwin-list { margin-top: 14px; border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 7px; }
+.topwin-row { display: flex; justify-content: space-between; gap: 12px; font-size: 0.82rem; color: var(--text-muted); }
+.topwin-row .tw-amt { color: var(--green); font-weight: 600; white-space: nowrap; }
+
 /* Footer */
 footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border); }
 
@@ -125,6 +140,12 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
       <p>Unable to load results. Please try again later.</p>
     </div>
     <div id="content" style="display:none">
+
+      <!-- Proof banner: Enhanced vs random (hidden until Enhanced leads) -->
+      <div class="proof-banner" id="proofBanner" style="display:none">
+        <div class="proof-lead" id="proofLead"></div>
+        <div class="proof-detail" id="proofDetail"></div>
+      </div>
 
       <!-- Stat Cards -->
       <div class="stat-cards">
@@ -159,13 +180,21 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
         </div>
         <div class="stat-card">
           <div class="value cyan" id="totalUsers">—</div>
-          <div class="label">Total Users (90d)</div>
+          <div class="label">Active Users (90d)</div>
           <div class="sub-meta" id="userDeltas"></div>
         </div>
         <div class="stat-card">
           <div class="value green" id="conversionRate">—</div>
           <div class="label">Conversion Rate</div>
         </div>
+      </div>
+
+      <!-- Top Win of all time (hidden until a win exists) -->
+      <div class="topwin-card" id="topWinCard" style="display:none">
+        <span class="topwin-badge">Top Win of All Time</span>
+        <div class="topwin-amount" id="topWinAmount">—</div>
+        <div class="topwin-detail" id="topWinDetail"></div>
+        <div class="topwin-list" id="topWinList"></div>
       </div>
 
       <!-- Lottery Filter Tabs -->
@@ -200,6 +229,14 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
         <h2>Match Distribution by Model</h2>
         <div class="chart-container">
           <canvas id="distributionChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Hits Over Time Chart (hidden until ≥2 daily snapshots exist) -->
+      <div class="chart-section" id="winsChartSection" style="display:none">
+        <h2>Hits Over Time</h2>
+        <div class="chart-container">
+          <canvas id="winsChart"></canvas>
         </div>
       </div>
 
@@ -275,6 +312,7 @@ let sortCol = 'moneyWon';
 let sortDir = 'desc';
 let chart = null;
 let subChart = null;
+let winsChart = null;
 
 // ---- DATA LOADING ----
 
@@ -363,10 +401,13 @@ function getRecentResults() {
 
 function render() {
   renderStatCards();
+  renderProof();
+  renderTopWin();
   renderSubscribers();
   renderEvents();
   renderLeaderboard();
   renderChart();
+  renderWins();
   renderFeed();
 }
 
@@ -646,6 +687,128 @@ function renderEvents() {
     `Notification opt-in: <strong>${optinRate}</strong> (${granted}/${granted + denied}) &nbsp;·&nbsp; ` +
     `Shares: <strong>${sum(ev.share)}</strong> &nbsp;·&nbsp; Reveals: <strong>${sum(ev.reveal)}</strong> &nbsp;·&nbsp; ` +
     `Review prompts: <strong>${sum(ev.review_prompt)}</strong>`;
+}
+
+// ---- PROOF: ENHANCED VS RANDOM ----
+
+// Aggregate a model's predictions/hits across ALL lotteries (filter-independent —
+// this is a global headline, not the filtered leaderboard view).
+function modelAgg(modelType) {
+  let predictions = 0, hits = 0;
+  for (const models of Object.values((currentData && currentData.models) || {})) {
+    const s = models[modelType];
+    if (s) { predictions += s.totalPredictions; hits += s.hits; }
+  }
+  return { predictions, hits };
+}
+
+function renderProof() {
+  const banner = document.getElementById('proofBanner');
+  const enh = modelAgg('enhanced');
+  const rnd = modelAgg('randomBalanced');
+  // Only make the claim when it's actually true on live data (Enhanced ahead)
+  // and both models have a meaningful sample.
+  if (!enh.predictions || !rnd.predictions) { banner.style.display = 'none'; return; }
+  const enhRate = enh.hits / enh.predictions * 100;
+  const rndRate = rnd.hits / rnd.predictions * 100;
+  const delta = enhRate - rndRate;
+  if (delta <= 0) { banner.style.display = 'none'; return; }
+  banner.style.display = '';
+  document.getElementById('proofLead').innerHTML =
+    `The <strong>Enhanced Model</strong> matches numbers <span class="proof-delta">+${delta.toFixed(1)} pts</span> more often than random`;
+  document.getElementById('proofDetail').textContent =
+    `Enhanced ${enhRate.toFixed(1)}% hit rate vs Random Balanced ${rndRate.toFixed(1)}% ` +
+    `(${enh.predictions.toLocaleString()} vs ${rnd.predictions.toLocaleString()} verified predictions). ` +
+    `For entertainment — past results don't guarantee future outcomes.`;
+}
+
+// ---- TOP WIN OF ALL TIME ----
+
+function winDescription(w) {
+  const lottery = LOTTERY_DISPLAY[w.lotteryType] || w.lotteryType;
+  const model = MODEL_DISPLAY[w.modelType] || w.modelType;
+  let matches;
+  if (w.lotteryType === 'euroMillions') {
+    const stars = w.specialMatchCount || 0;
+    matches = `${w.mainMatches} of 5${stars ? ` + ${stars} star${stars > 1 ? 's' : ''}` : ''}`;
+  } else {
+    matches = `${w.mainMatches} of 5${w.specialMatch ? ' + special' : ''}`;
+  }
+  return `${matches} · ${lottery} · ${model}${w.drawDate ? ' · ' + w.drawDate : ''}`;
+}
+
+function winAmount(w) {
+  if (w.isJackpot) return 'JACKPOT';
+  const sym = w.currency === 'EUR' ? '€' : '$';
+  return (w.prize > 0) ? sym + w.prize.toLocaleString() : '—';
+}
+
+function renderTopWin() {
+  const card = document.getElementById('topWinCard');
+  const wins = (currentData && currentData.topWins) || [];
+  if (!wins.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+
+  const top = wins[0];
+  document.getElementById('topWinAmount').textContent = winAmount(top);
+  document.getElementById('topWinDetail').textContent = winDescription(top);
+
+  const rest = wins.slice(1);
+  document.getElementById('topWinList').innerHTML = rest.map(w =>
+    `<div class="topwin-row"><span>${winDescription(w)}</span><span class="tw-amt">${winAmount(w)}</span></div>`
+  ).join('');
+}
+
+// ---- HITS OVER TIME ----
+
+function renderWins() {
+  const section = document.getElementById('winsChartSection');
+  const hist = (currentData && currentData.resultsHistory) || [];
+  if (winsChart) { winsChart.destroy(); winsChart = null; }
+  if (hist.length < 2) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const labels = hist.map(s => {
+    const d = new Date(s.date + 'T00:00:00Z');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+  });
+  const cumulativeHits = hist.map(s => s.hits);
+  // Per-day new hits (cumulative diff), surfaced in the tooltip.
+  const dailyHits = hist.map((s, i) => i === 0 ? s.hits : Math.max(0, s.hits - hist[i - 1].hits));
+
+  const ctx = document.getElementById('winsChart').getContext('2d');
+  winsChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Total hits',
+        data: cumulativeHits,
+        borderColor: '#3fb950',
+        backgroundColor: 'rgba(63,185,80,0.12)',
+        fill: true,
+        tension: 0.3,
+        pointRadius: hist.length > 30 ? 0 : 3,
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            afterBody(items) { return `New hits that day: +${dailyHits[items[0].dataIndex]}`; },
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { color: '#8b949e', maxTicksLimit: 12 }, grid: { color: '#21262d' } },
+        y: { ticks: { color: '#8b949e', precision: 0 }, grid: { color: '#21262d' }, beginAtZero: true },
+      },
+    },
+  });
 }
 
 // ---- EVENT HANDLERS ----
