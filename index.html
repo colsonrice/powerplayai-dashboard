@@ -112,6 +112,48 @@ tr.top-performer td { border-left: 3px solid var(--green); }
 .topwin-row { display: flex; justify-content: space-between; gap: 12px; font-size: 0.82rem; color: var(--text-muted); }
 .topwin-row .tw-amt { color: var(--green); font-weight: 600; white-space: nowrap; }
 
+/* v3: Model vs Control (paired) cards */
+.paired-section { margin-bottom: 24px; }
+.paired-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.paired-card { background: rgba(88,166,255,0.08); border: 1px solid rgba(88,166,255,0.35); border-radius: 12px; padding: 16px 18px; }
+.paired-card.ahead { border-color: rgba(63,185,80,0.55); background: rgba(63,185,80,0.07); }
+.paired-card.behind { border-color: rgba(248,81,73,0.5); background: rgba(248,81,73,0.06); }
+.paired-card.collecting { border-style: dashed; background: transparent; }
+.paired-game { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
+.paired-value { font-size: 1.9rem; font-weight: 800; line-height: 1.15; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.paired-value.ahead { color: var(--green); }
+.paired-value.behind { color: var(--red); }
+.paired-value.flat { color: var(--text); }
+.paired-unit { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
+.paired-verdict { display: inline-block; margin-top: 8px; font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
+.paired-verdict.ahead { background: rgba(63,185,80,0.15); color: var(--green); }
+.paired-verdict.behind { background: rgba(248,81,73,0.15); color: var(--red); }
+.paired-verdict.flat { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+.paired-meta { color: var(--text-muted); font-size: 0.8rem; margin-top: 8px; }
+.paired-models { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+.paired-models div { display: flex; justify-content: space-between; gap: 8px; font-size: 0.78rem; color: var(--text-muted); flex-wrap: wrap; }
+.paired-caption { color: var(--text-muted); font-size: 0.82rem; margin-top: 10px; }
+
+/* v3: shared bits */
+.chart-section h3 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 20px 0 10px; }
+.section-caption { color: var(--text-muted); font-size: 0.82rem; margin-top: 12px; }
+.muted { color: var(--text-muted); font-size: 0.78rem; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+th.num { text-align: right; }
+.warn-list, .alert-list { list-style: none; margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.warn-list:empty, .alert-list:empty { display: none; }
+.warn-list li { color: var(--yellow); background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.35); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; }
+.alert-list li { color: var(--red); background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.35); border-radius: 8px; padding: 8px 12px; font-size: 0.85rem; }
+
+/* v3: device mix */
+.mix-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.mix-card h4 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 8px; }
+.mix-row { display: grid; grid-template-columns: minmax(70px, 38%) 1fr 44px; gap: 8px; align-items: center; font-size: 0.8rem; margin-bottom: 5px; }
+.mix-row .mix-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mix-bar { height: 8px; background: #21262d; border-radius: 4px; overflow: hidden; }
+.mix-bar span { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+.mix-count { text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
 /* Footer */
 footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-size: 0.8rem; border-top: 1px solid var(--border); }
 
@@ -119,6 +161,7 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
   .hero h1 { font-size: 1.5rem; }
   .stat-cards { grid-template-columns: 1fr 1fr; }
   .stat-card .value { font-size: 1.5rem; }
+  .paired-value { font-size: 1.5rem; }
   td, th { padding: 8px 10px; font-size: 0.8rem; }
 }
 </style>
@@ -141,10 +184,16 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
     </div>
     <div id="content" style="display:none">
 
-      <!-- Proof banner: Enhanced vs random (hidden until Enhanced leads) -->
+      <!-- Proof banner: Enhanced vs random (legacy headline; replaced by the paired cards once a lottery has ≥200 paired lines) -->
       <div class="proof-banner" id="proofBanner" style="display:none">
         <div class="proof-lead" id="proofLead"></div>
         <div class="proof-detail" id="proofDetail"></div>
+      </div>
+
+      <!-- Model vs Control, paired (hidden until v3.arms has ≥200 pairs for some lottery) -->
+      <div class="paired-section" id="pairedSection" style="display:none">
+        <div class="paired-grid" id="pairedGrid"></div>
+        <div class="paired-caption">Paired random control: every forecast line is scored against a random line generated alongside it — same draws, same devices. Shown as mean extra main-number matches per line with a 95% confidence interval; when the interval includes zero there is no measurable difference. For entertainment — past results don't guarantee future outcomes.</div>
       </div>
 
       <!-- Stat Cards -->
@@ -232,6 +281,24 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
         </div>
       </div>
 
+      <!-- Draw ledger (hidden until v3.draws exists; follows the lottery tabs) -->
+      <div class="chart-section" id="ledgerSection" style="display:none">
+        <h2>Draw Ledger</h2>
+        <div class="table-wrap" style="margin-bottom:0">
+          <table>
+            <thead><tr><th>Draw</th><th>Game</th><th class="num">Forecasts</th><th class="num">Forecast hits</th><th class="num">Control</th><th class="num">Control hits</th><th class="num">Devices</th></tr></thead>
+            <tbody id="ledgerBody"></tbody>
+          </table>
+        </div>
+        <div class="section-caption" id="ledgerCaption"></div>
+      </div>
+
+      <!-- Recent Results -->
+      <div class="feed-section">
+        <h2>Recent Results</h2>
+        <div id="recentFeed"></div>
+      </div>
+
       <!-- Hits Over Time Chart (hidden until ≥2 daily snapshots exist) -->
       <div class="chart-section" id="winsChartSection" style="display:none">
         <h2>Hits Over Time</h2>
@@ -260,10 +327,94 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
         <div id="eventMisc" class="sub-meta"></div>
       </div>
 
-      <!-- Recent Results -->
-      <div class="feed-section">
-        <h2>Recent Results</h2>
-        <div id="recentFeed"></div>
+      <!-- Events by day (hidden until v3.eventsByDay exists) -->
+      <div class="chart-section" id="eventsDaySection" style="display:none">
+        <h2>Events by Day</h2>
+        <div class="chart-container"><canvas id="eventsDayChart"></canvas></div>
+        <div class="section-caption">Daily counts summed over every dimension. Subscribes use the right-hand axis.</div>
+      </div>
+
+      <!-- Activation ladder (hidden until v3.activation exists) -->
+      <div class="chart-section" id="activationSection" style="display:none">
+        <h2>Activation Ladder</h2>
+        <div class="chart-container"><canvas id="activationChart"></canvas></div>
+        <div id="activationCohortWrap">
+          <h3>By install cohort</h3>
+          <div class="table-wrap" style="margin-bottom:0">
+            <table>
+              <thead><tr><th>Cohort</th><th class="num">Size</th><th class="num">Own forecast</th><th class="num">Intent</th><th class="num">Loop</th></tr></thead>
+              <tbody id="activationCohortBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Retention (hidden until v3.retention exists) -->
+      <div class="chart-section" id="retentionSection" style="display:none">
+        <h2>Retention</h2>
+        <div class="table-wrap" style="margin-bottom:0">
+          <table>
+            <thead><tr><th>Cohort week</th><th class="num">Size</th><th class="num">D1</th><th class="num">D7</th><th class="num">D30</th></tr></thead>
+            <tbody id="retentionBody"></tbody>
+          </table>
+        </div>
+        <div class="section-caption">Share of each weekly install cohort seen again 1, 7 and 30 days after install. Dashes mean the window has not elapsed yet.</div>
+      </div>
+
+      <!-- Growth & Reconcile (hidden until v3.growth or v3.reconcile exists) -->
+      <div class="chart-section" id="growthSection" style="display:none">
+        <h2>Growth &amp; Reconcile</h2>
+        <div class="table-wrap" style="margin-bottom:0">
+          <table>
+            <thead><tr><th>Week ending</th><th class="num">Downloads</th><th class="num">First opens</th><th class="num">New devices</th><th class="num">New subs</th><th class="num">Subscribe events</th><th class="num">Renewals</th><th class="num">Proceeds</th></tr></thead>
+            <tbody id="growthBody"></tbody>
+          </table>
+        </div>
+        <div class="section-caption" id="reconcileDetail"></div>
+        <ul class="warn-list" id="reconcileFlags"></ul>
+      </div>
+
+      <!-- Device mix (hidden until v3.devices exists) -->
+      <div class="chart-section" id="devicesSection" style="display:none">
+        <h2>Device Mix</h2>
+        <div class="stat-cards" id="activeCards" style="margin-bottom:20px">
+          <div class="stat-card"><div class="value cyan" id="activeD1">—</div><div class="label">Active today</div></div>
+          <div class="stat-card"><div class="value cyan" id="activeD7">—</div><div class="label">Active 7 days</div></div>
+          <div class="stat-card"><div class="value cyan" id="activeD30">—</div><div class="label">Active 30 days</div></div>
+        </div>
+        <div class="mix-grid" id="mixGrid"></div>
+      </div>
+
+      <!-- Packs & Scanner (hidden until v3.packs or v3.scanResults exists) -->
+      <div class="chart-section" id="packsSection" style="display:none">
+        <h2>Packs &amp; Scanner</h2>
+        <div id="packsBlock">
+          <h3>Packs</h3>
+          <div class="table-wrap" style="margin-bottom:0">
+            <table>
+              <thead><tr><th>Game</th><th>Spread</th><th class="num">Packs</th><th class="num">Lines</th><th class="num">Avg matches</th><th class="num">Hit lines</th><th class="num">Cost</th><th class="num">Prize</th><th>Best tiers</th></tr></thead>
+              <tbody id="packsBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="scanBlock">
+          <h3>Scanned tickets</h3>
+          <div class="table-wrap" style="margin-bottom:0">
+            <table>
+              <thead><tr><th>Game</th><th class="num">Scans</th><th class="num">0</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">Special</th><th>Tiers</th></tr></thead>
+              <tbody id="scanBody"></tbody>
+            </table>
+          </div>
+          <div class="section-caption">Main-number matches per scanned ticket (0–5). Tiers read as matches + special ball.</div>
+        </div>
+      </div>
+
+      <!-- Data health (hidden until v3.health exists) -->
+      <div class="chart-section" id="healthSection" style="display:none">
+        <h2>Data Health</h2>
+        <div class="chart-container" id="healthChartWrap"><canvas id="healthChart"></canvas></div>
+        <ul class="alert-list" id="healthAlerts"></ul>
+        <div class="section-caption" id="healthCaption"></div>
       </div>
 
     </div>
@@ -276,9 +427,12 @@ footer { text-align: center; padding: 32px 20px; color: var(--text-muted); font-
 
 <script>
 // ---- CONFIG ----
-// Replace with your actual Cloudflare Worker URL after deployment
-const API_URL = 'https://powerplayai-api.colsonrice.workers.dev/stats';
+const DEFAULT_API_URL = 'https://powerplayai-api.colsonrice.workers.dev/stats';
+// Dev override: index.html?api=./fixture-v3.json (or any URL) loads stats from there instead.
+// Default behaviour is unchanged when the parameter is absent.
+const API_URL = new URLSearchParams(location.search).get('api') || DEFAULT_API_URL;
 const REFRESH_INTERVAL = 300000; // 5 minutes — data updates at most a few times per draw day
+const PAIRED_MIN_PAIRS = 200;    // paired Model-vs-Control cards replace the legacy banner at this sample size
 
 const MODEL_DISPLAY = {
   base: 'Base Model',
@@ -313,6 +467,9 @@ let sortDir = 'desc';
 let chart = null;
 let subChart = null;
 let winsChart = null;
+let eventsDayChart = null;
+let activationChart = null;
+let healthChart = null;
 
 // ---- DATA LOADING ----
 
@@ -400,15 +557,16 @@ function getRecentResults() {
 // ---- RENDERING ----
 
 function render() {
-  renderStatCards();
-  renderProof();
-  renderTopWin();
-  renderSubscribers();
-  renderEvents();
-  renderLeaderboard();
-  renderChart();
-  renderWins();
-  renderFeed();
+  // Each section renders independently: a malformed block (or a missing v3)
+  // must never blank the sections that follow it.
+  const steps = [
+    renderStatCards, renderProof, renderPaired, renderTopWin, renderSubscribers, renderEvents,
+    renderLeaderboard, renderChart, renderLedger, renderWins, renderFeed,
+    renderEventsByDay, renderActivation, renderRetention, renderGrowth, renderDevices, renderPacks, renderHealth,
+  ];
+  for (const step of steps) {
+    try { step(); } catch (e) { console.error(step.name + ' failed:', e); }
+  }
 }
 
 function renderStatCards() {
@@ -676,7 +834,7 @@ function renderEvents() {
     const r = v ? sub / v : 0;
     const cls = r >= 0.1 ? 'good' : r >= 0.05 ? 'mid' : 'low';
     const conv = v ? (r * 100).toFixed(1) + '%' : '—';
-    return `<tr><td><strong>${s}</strong></td><td>${v.toLocaleString()}</td><td>${sub.toLocaleString()}</td><td><span class="hit-rate ${cls}">${conv}</span></td></tr>`;
+    return `<tr><td><strong>${esc(s)}</strong></td><td>${v.toLocaleString()}</td><td>${sub.toLocaleString()}</td><td><span class="hit-rate ${cls}">${conv}</span></td></tr>`;
   }).join('');
 
   const optin = ev.notif_optin || {};
@@ -704,18 +862,23 @@ function modelAgg(modelType) {
 
 function renderProof() {
   const banner = document.getElementById('proofBanner');
+  // Once any lottery has enough paired lines, the paired cards carry the
+  // headline and this unpaired comparison steps aside.
+  if (pairedReady()) { banner.style.display = 'none'; return; }
   const enh = modelAgg('enhanced');
   const rnd = modelAgg('randomBalanced');
-  // Only make the claim when it's actually true on live data (Enhanced ahead)
-  // and both models have a meaningful sample.
+  // Symmetric by design: the banner renders whichever way the live data
+  // points. A proof surface that only speaks when it's winning is cherry-
+  // picking, and the receipts brand can't afford it.
   if (!enh.predictions || !rnd.predictions) { banner.style.display = 'none'; return; }
   const enhRate = enh.hits / enh.predictions * 100;
   const rndRate = rnd.hits / rnd.predictions * 100;
   const delta = enhRate - rndRate;
-  if (delta <= 0) { banner.style.display = 'none'; return; }
+  const mag = Math.abs(delta).toFixed(1);
   banner.style.display = '';
-  document.getElementById('proofLead').innerHTML =
-    `The <strong>Enhanced Model</strong> matches numbers <span class="proof-delta">+${delta.toFixed(1)} pts</span> more often than random`;
+  document.getElementById('proofLead').innerHTML = delta >= 0
+    ? `The <strong>Enhanced Model</strong> matches numbers <span class="proof-delta">+${mag} pts</span> more often than random on live data`
+    : `The <strong>Enhanced Model</strong> is trailing random by <span class="proof-delta">${mag} pts</span> on live data — every draw is published either way`;
   document.getElementById('proofDetail').textContent =
     `Enhanced ${enhRate.toFixed(1)}% hit rate vs Random Balanced ${rndRate.toFixed(1)}% ` +
     `(${enh.predictions.toLocaleString()} vs ${rnd.predictions.toLocaleString()} verified predictions). ` +
@@ -809,6 +972,417 @@ function renderWins() {
       },
     },
   });
+}
+
+// ---- V3 ANALYTICS ----
+// Everything below reads stats.v3 (analytics v3 contract §1.5). Every section
+// hides itself when its block is absent, so pre-v3 responses render exactly as before.
+
+const v3 = () => (currentData && currentData.v3 && typeof currentData.v3 === 'object') ? currentData.v3 : null;
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => (n == null || isNaN(n)) ? '—' : Number(n).toLocaleString();
+const signed = (v, digits = 3) => (v == null || isNaN(v)) ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(digits);
+const fmtDay = s => new Date(s + 'T00:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+const AXIS = { x: { ticks: { color: '#8b949e', maxTicksLimit: 12 }, grid: { color: '#21262d' } }, y: { ticks: { color: '#8b949e', precision: 0 }, grid: { color: '#21262d' }, beginAtZero: true } };
+const LEGEND = { labels: { color: '#e6edf3', font: { size: 11 } } };
+
+// -- Model vs Control (paired) --
+
+function pairedArms() {
+  const arms = (v3() && v3().arms) || {};
+  return Object.entries(arms)
+    .filter(([, a]) => a && a.paired && a.paired.pairs > 0)
+    .map(([lottery, a]) => ({ lottery, ...a }));
+}
+
+function pairedReady() {
+  return pairedArms().some(a => a.paired.pairs >= PAIRED_MIN_PAIRS);
+}
+
+// The verdict comes from the confidence interval alone: a win is only a win
+// when the whole interval sits above zero.
+function pairedVerdict(p) {
+  const ci = Array.isArray(p.ci95) && p.ci95.length === 2 ? p.ci95 : [0, 0];
+  if (ci[0] > 0) return { cls: 'ahead', text: 'Model ahead of control' };
+  if (ci[1] < 0) return { cls: 'behind', text: 'Control ahead of model' };
+  return { cls: 'flat', text: 'No measurable difference yet' };
+}
+
+function renderPaired() {
+  const section = document.getElementById('pairedSection');
+  if (!pairedReady()) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const order = Object.keys(LOTTERY_DISPLAY);
+  const arms = pairedArms().sort((a, b) => order.indexOf(a.lottery) - order.indexOf(b.lottery));
+  document.getElementById('pairedGrid').innerHTML = arms.map(a => {
+    const p = a.paired;
+    const game = esc(LOTTERY_DISPLAY[a.lottery] || a.lottery);
+    if (p.pairs < PAIRED_MIN_PAIRS) {
+      return `<div class="paired-card collecting"><div class="paired-game">${game}</div>` +
+        `<div class="paired-value flat">${fmt(p.pairs)}<span class="paired-unit"> / ${PAIRED_MIN_PAIRS} pairs</span></div>` +
+        `<span class="paired-verdict flat">Collecting — not enough pairs yet</span></div>`;
+    }
+    const v = pairedVerdict(p);
+    const ci = Array.isArray(p.ci95) && p.ci95.length === 2 ? p.ci95 : [null, null];
+    const byModel = a.byModel && typeof a.byModel === 'object'
+      ? Object.entries(a.byModel).filter(([, m]) => m && m.pairs > 0) : [];
+    const modelRows = byModel.map(([m, s]) => {
+      const mci = Array.isArray(s.ci95) && s.ci95.length === 2 ? s.ci95 : [null, null];
+      return `<div><span>${esc(MODEL_DISPLAY[m] || m)}</span><span>${signed(s.meanDiff)} · ${fmt(s.pairs)} pairs · CI ${signed(mci[0], 2)} to ${signed(mci[1], 2)}</span></div>`;
+    }).join('');
+    return `<div class="paired-card ${v.cls}">
+      <div class="paired-game">${game}</div>
+      <div class="paired-value ${v.cls}">${signed(p.meanDiff)}<span class="paired-unit"> extra main matches per line</span></div>
+      <span class="paired-verdict ${v.cls}">${v.text}</span>
+      <div class="paired-meta">95% CI ${signed(ci[0])} to ${signed(ci[1])} · ${fmt(p.pairs)} pairs · ${signed(p.diffMain, 0)} main matches in total</div>
+      ${modelRows ? `<div class="paired-models">${modelRows}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// -- Draw ledger --
+
+function renderLedger() {
+  const section = document.getElementById('ledgerSection');
+  const all = (v3() && Array.isArray(v3().draws)) ? v3().draws : [];
+  const draws = all
+    .filter(d => d && d.draw && (currentFilter === 'all' || d.lottery === currentFilter))
+    .sort((a, b) => String(b.draw).localeCompare(String(a.draw)))
+    .slice(0, 20);
+  if (!draws.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const sumModels = d => Object.values(d.byModel || {}).reduce(
+    (acc, m) => ({ n: acc.n + (Number(m && m.n) || 0), hits: acc.hits + (Number(m && m.hits) || 0) }), { n: 0, hits: 0 });
+  const hitCell = (hits, n) => n ? `${fmt(hits)} <span class="muted">(${(hits / n * 100).toFixed(0)}%)</span>` : '—';
+  document.getElementById('ledgerBody').innerHTML = draws.map(d => {
+    const f = sumModels(d);
+    const c = d.control || {};
+    const cn = Number(c.n) || 0, ch = Number(c.hits) || 0;
+    const detail = Object.entries(d.byModel || {}).map(([m, s]) => `${MODEL_DISPLAY[m] || m}: ${fmt(s && s.hits)}/${fmt(s && s.n)}`).join(', ');
+    return `<tr title="${esc(detail)}">
+      <td>${esc(d.draw)}</td>
+      <td><span class="feed-lottery ${esc(d.lottery)}">${esc(LOTTERY_DISPLAY[d.lottery] || d.lottery)}</span></td>
+      <td class="num">${f.n ? fmt(f.n) : '—'}</td><td class="num">${hitCell(f.hits, f.n)}</td>
+      <td class="num">${cn ? fmt(cn) : '—'}</td><td class="num">${hitCell(ch, cn)}</td>
+      <td class="num">${fmt(d.devices)}</td></tr>`;
+  }).join('');
+  const scope = currentFilter === 'all' ? '' : ' for ' + (LOTTERY_DISPLAY[currentFilter] || currentFilter);
+  document.getElementById('ledgerCaption').textContent =
+    `Last ${draws.length} draws${scope}. Hits are lines with at least one main-number match; control lines are the paired random lines scored on the same draws.`;
+}
+
+// -- Events by day --
+
+const DAY_SERIES = [
+  { key: 'paywall_view', label: 'Paywall views', color: '#bc8cff' },
+  { key: 'subscribe', label: 'Subscribes', color: '#3fb950', axis: 'y1' },
+  { key: 'reveal', label: 'Reveals', color: '#58a6ff' },
+  { key: 'forecast_generated', label: 'Forecasts generated', color: '#d29922' },
+  { key: 'forecast_generated', label: 'Forecasts (user-made)', color: '#db6d28', dim: 'origin=user', optional: true },
+];
+
+// eventsByDay[day][event]["k=v|k=v"] = count → sum over dims, optionally only dims containing `dim`.
+function dayEventTotal(dayEvents, key, dim) {
+  const dims = dayEvents && dayEvents[key];
+  if (!dims || typeof dims !== 'object') return 0;
+  let sum = 0;
+  for (const [k, v] of Object.entries(dims)) {
+    if (dim && !String(k).split('|').includes(dim)) continue;
+    sum += Number(v) || 0;
+  }
+  return sum;
+}
+
+function renderEventsByDay() {
+  const section = document.getElementById('eventsDaySection');
+  const byDay = v3() && v3().eventsByDay;
+  if (eventsDayChart) { eventsDayChart.destroy(); eventsDayChart = null; }
+  const days = (byDay && typeof byDay === 'object') ? Object.keys(byDay).sort() : [];
+  if (days.length < 2) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const datasets = DAY_SERIES
+    .map(s => ({ s, data: days.map(d => dayEventTotal(byDay[d], s.key, s.dim)) }))
+    .filter(({ s, data }) => !s.optional || data.some(v => v > 0))
+    .map(({ s, data }) => ({
+      label: s.label, data, borderColor: s.color, backgroundColor: s.color, fill: false, tension: 0.3,
+      pointRadius: days.length > 30 ? 0 : 2, borderWidth: 2, yAxisID: s.axis || 'y',
+    }));
+  const ctx = document.getElementById('eventsDayChart').getContext('2d');
+  eventsDayChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: days.map(fmtDay), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: { legend: LEGEND },
+      scales: {
+        x: AXIS.x,
+        y: AXIS.y,
+        y1: { position: 'right', ticks: { color: '#3fb950', precision: 0 }, grid: { drawOnChartArea: false }, beginAtZero: true },
+      },
+    },
+  });
+}
+
+// -- Activation ladder --
+
+const LADDER = [
+  ['first_open', 'First open'], ['onboarding', 'Onboarding'], ['forecast_user', 'Own forecast'], ['intent', 'Intent'],
+  ['loop', 'Loop'], ['notif', 'Notifications'], ['paywall', 'Paywall'], ['subscribed', 'Subscribed'],
+];
+
+function renderActivation() {
+  const section = document.getElementById('activationSection');
+  const act = v3() && v3().activation;
+  const stages = act && act.stages && typeof act.stages === 'object' ? act.stages : null;
+  if (activationChart) { activationChart.destroy(); activationChart = null; }
+  if (!stages || !Object.values(stages).some(v => Number(v) > 0)) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const known = LADDER.filter(([k]) => k in stages);
+  const extra = Object.keys(stages).filter(k => !LADDER.some(([l]) => l === k)).map(k => [k, k]);
+  const rows = [...known, ...extra];
+  const values = rows.map(([k]) => Number(stages[k]) || 0);
+  const base = Number(stages.first_open) || Math.max(...values, 1);
+  const ctx = document.getElementById('activationChart').getContext('2d');
+  activationChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: rows.map(([, l]) => l),
+      datasets: [{ data: values, backgroundColor: rows.map(([k]) => k === 'subscribed' ? '#3fb950' : '#58a6ff'), borderRadius: 4 }],
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => `${fmt(c.raw)} devices · ${(c.raw / base * 100).toFixed(0)}% of first opens` } },
+      },
+      scales: {
+        x: { ticks: { color: '#8b949e', precision: 0 }, grid: { color: '#21262d' }, beginAtZero: true },
+        y: { ticks: { color: '#e6edf3' }, grid: { display: false } },
+      },
+    },
+  });
+
+  // Cohort table — joined with retention[].size on cohortWeek so rates can be shown.
+  const sizes = {};
+  for (const r of ((v3() && v3().retention) || [])) if (r && r.cohortWeek) sizes[r.cohortWeek] = Number(r.size) || 0;
+  const cohorts = (Array.isArray(act.byCohort) ? act.byCohort : []).filter(c => c && c.cohortWeek)
+    .sort((a, b) => String(b.cohortWeek).localeCompare(String(a.cohortWeek)));
+  const cell = (n, size) => size ? `${fmt(n)} <span class="muted">(${((Number(n) || 0) / size * 100).toFixed(0)}%)</span>` : fmt(n);
+  document.getElementById('activationCohortWrap').style.display = cohorts.length ? '' : 'none';
+  document.getElementById('activationCohortBody').innerHTML = cohorts.map(c => {
+    const size = sizes[c.cohortWeek];
+    return `<tr><td><strong>${esc(c.cohortWeek)}</strong></td><td class="num">${fmt(size)}</td>` +
+      `<td class="num">${cell(c.forecast_user, size)}</td><td class="num">${cell(c.intent, size)}</td><td class="num">${cell(c.loop, size)}</td></tr>`;
+  }).join('');
+}
+
+// -- Retention --
+
+function renderRetention() {
+  const section = document.getElementById('retentionSection');
+  const rows = (v3() && Array.isArray(v3().retention)) ? v3().retention.filter(r => r && r.cohortWeek) : [];
+  if (!rows.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const sorted = rows.slice().sort((a, b) => String(b.cohortWeek).localeCompare(String(a.cohortWeek)));
+  // d1/d7/d30 are fractions (0–1); null/missing means the window has not elapsed.
+  const cell = v => {
+    if (v == null || isNaN(v)) return '<span class="muted">—</span>';
+    const p = Number(v) * 100;
+    const cls = p >= 40 ? 'good' : p >= 20 ? 'mid' : 'low';
+    return `<span class="hit-rate ${cls}">${p.toFixed(0)}%</span>`;
+  };
+  document.getElementById('retentionBody').innerHTML = sorted.map(r =>
+    `<tr><td><strong>${esc(r.cohortWeek)}</strong></td><td class="num">${fmt(r.size)}</td>` +
+    `<td class="num">${cell(r.d1)}</td><td class="num">${cell(r.d7)}</td><td class="num">${cell(r.d30)}</td></tr>`
+  ).join('');
+}
+
+// -- Growth & Reconcile --
+
+function proceedsText(p) {
+  if (p == null || p === '') return '—';
+  const m = String(p).match(/^([A-Z]{3}):(-?[\d.]+)$/);
+  if (!m) return String(p);
+  const sym = m[1] === 'USD' ? '$' : m[1] === 'EUR' ? '€' : m[1] + ' ';
+  return sym + Number(m[2]).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function renderGrowth() {
+  const section = document.getElementById('growthSection');
+  const growth = (v3() && Array.isArray(v3().growth)) ? v3().growth.filter(r => r && r.weekEnding) : [];
+  const rec = v3() && v3().reconcile;
+  // reconcile is one week today; accept an array too so a history needs no page change.
+  const recs = (Array.isArray(rec) ? rec : (rec ? [rec] : [])).filter(r => r && r.week);
+  if (!growth.length && !recs.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const byWeek = {}; for (const r of recs) byWeek[r.week] = r;
+  const gw = {}; for (const r of growth) gw[r.weekEnding] = r;
+  const weeks = Array.from(new Set([...growth.map(r => r.weekEnding), ...recs.map(r => r.week)])).sort().reverse();
+  document.getElementById('growthBody').innerHTML = weeks.map(w => {
+    const g = gw[w] || {}, c = byWeek[w] || {};
+    const downloads = g.firstDownloads != null ? g.firstDownloads : c.downloads;
+    const newSubs = g.newSubs != null ? g.newSubs : c.newSubsSales;
+    return `<tr><td><strong>${esc(w)}</strong></td><td class="num">${fmt(downloads)}</td><td class="num">${fmt(c.firstOpen)}</td>` +
+      `<td class="num">${fmt(c.newDevices)}</td><td class="num">${fmt(newSubs)}</td><td class="num">${fmt(c.subscribeEvents)}</td>` +
+      `<td class="num">${fmt(g.renewals)}</td><td class="num">${esc(proceedsText(g.proceeds))}</td></tr>`;
+  }).join('');
+
+  const latest = recs.slice().sort((a, b) => String(b.week).localeCompare(String(a.week)))[0];
+  document.getElementById('reconcileDetail').textContent = latest
+    ? `Reconcile, week ending ${latest.week}: ${fmt(latest.forecastsGenerated)} forecasts generated · ${fmt(latest.resultsReported)} results reported ` +
+      `(${fmt(latest.modelRows)} model / ${fmt(latest.controlRows)} control rows) · ${fmt(latest.subActivations)} subscription activations. ` +
+      `Downloads, new subs, renewals and proceeds come from App Store Connect; opens, devices and events from the app.`
+    : 'Downloads, new subs, renewals and proceeds come from App Store Connect.';
+  const flags = latest && Array.isArray(latest.flags) ? latest.flags : [];
+  document.getElementById('reconcileFlags').innerHTML = flags.map(f => `<li>${esc(f)}</li>`).join('');
+}
+
+// -- Device mix --
+
+const MIX_DIMS = [
+  ['byApp', 'App version'], ['byOS', 'iOS version'], ['byRegion', 'Region'], ['byDeviceClass', 'Device class'],
+  ['byNotif', 'Notifications'], ['bySubState', 'Subscription state'], ['widgets', 'Widgets & Watch'],
+  ['byLang', 'Language'], ['byStorefront', 'Storefront'], ['byChannel', 'Channel'],
+];
+
+function renderDevices() {
+  const section = document.getElementById('devicesSection');
+  const dev = v3() && v3().devices;
+  if (!dev || typeof dev !== 'object') { section.style.display = 'none'; return; }
+  const active = (dev.active && typeof dev.active === 'object') ? dev.active : {};
+  const cards = MIX_DIMS.map(([k, title]) => {
+    const src = (dev[k] && typeof dev[k] === 'object') ? dev[k] : {};
+    const entries = Object.entries(src).map(([l, n]) => [l, Number(n) || 0]);
+    if (k === 'widgets' && dev.watch != null) entries.push(['Apple Watch', Number(dev.watch) || 0]);
+    return { title, entries: entries.sort((a, b) => b[1] - a[1]).slice(0, 8) };
+  }).filter(c => c.entries.length);
+  if (!cards.length && !Object.keys(active).length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  document.getElementById('activeCards').style.display = Object.keys(active).length ? '' : 'none';
+  document.getElementById('activeD1').textContent = fmt(active.d1);
+  document.getElementById('activeD7').textContent = fmt(active.d7);
+  document.getElementById('activeD30').textContent = fmt(active.d30);
+
+  document.getElementById('mixGrid').innerHTML = cards.map(c => {
+    const max = Math.max(...c.entries.map(e => e[1]), 1);
+    const total = c.entries.reduce((s, e) => s + e[1], 0);
+    return `<div class="mix-card"><h4>${esc(c.title)}</h4>` + c.entries.map(([l, n]) =>
+      `<div class="mix-row"><span class="mix-label" title="${esc(l)}">${esc(l)}</span>` +
+      `<div class="mix-bar"><span style="width:${(n / max * 100).toFixed(1)}%"></span></div>` +
+      `<span class="mix-count" title="${total ? (n / total * 100).toFixed(1) + '%' : ''}">${fmt(n)}</span></div>`
+    ).join('') + '</div>';
+  }).join('');
+}
+
+// -- Packs & Scanner --
+
+function tierLabel(k) {
+  const m = String(k).match(/^(\d)_(true|false)$/);
+  return m ? `${m[1]}${m[2] === 'true' ? '+S' : ''}` : String(k);
+}
+
+function renderPacks() {
+  const section = document.getElementById('packsSection');
+  const packs = (v3() && v3().packs && typeof v3().packs === 'object') ? v3().packs : {};
+  const scans = (v3() && v3().scanResults && typeof v3().scanResults === 'object') ? v3().scanResults : {};
+  const packRows = [];
+  for (const [lt, spreads] of Object.entries(packs)) {
+    for (const [spread, s] of Object.entries(spreads || {})) if (s && Number(s.n) > 0) packRows.push({ lt, spread, ...s });
+  }
+  const scanRows = Object.entries(scans).filter(([, s]) => s && Number(s.n) > 0).map(([lt, s]) => ({ lt, ...s }));
+  if (!packRows.length && !scanRows.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const spreadOrder = ['half', 'full', 'plus', 'double'];
+  packRows.sort((a, b) => a.lt.localeCompare(b.lt) || (spreadOrder.indexOf(a.spread) - spreadOrder.indexOf(b.spread)));
+  const distSum = d => Object.entries(d || {}).reduce((acc, [k, v]) => {
+    const n = Number(v) || 0; acc.lines += n; acc.matches += (Number(k) || 0) * n; if (Number(k) > 0) acc.hits += n; return acc;
+  }, { lines: 0, matches: 0, hits: 0 });
+  const tiers = t => Object.entries(t || {}).filter(([, n]) => Number(n) > 0).sort((a, b) => b[1] - a[1]).slice(0, 4)
+    .map(([k, n]) => `${tierLabel(k)} ×${fmt(n)}`).join(', ') || '—';
+  const money = (v, lt) => (v == null || isNaN(v)) ? '—' : (lt === 'euroMillions' ? '€' : '$') + Number(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
+  const game = lt => `<span class="feed-lottery ${esc(lt)}">${esc(LOTTERY_DISPLAY[lt] || lt)}</span>`;
+
+  document.getElementById('packsBlock').style.display = packRows.length ? '' : 'none';
+  document.getElementById('packsBody').innerHTML = packRows.map(r => {
+    const d = distSum(r.dist);
+    const lines = Number(r.lines) || d.lines;
+    return `<tr><td>${game(r.lt)}</td><td><strong>${esc(r.spread)}</strong></td><td class="num">${fmt(r.n)}</td><td class="num">${fmt(lines)}</td>` +
+      `<td class="num">${d.lines ? (d.matches / d.lines).toFixed(2) : '—'}</td><td class="num">${d.lines ? (d.hits / d.lines * 100).toFixed(0) + '%' : '—'}</td>` +
+      `<td class="num">${money(r.cost, r.lt)}</td><td class="num money">${money(r.prize, r.lt)}</td><td>${esc(tiers(r.bestTierCounts))}</td></tr>`;
+  }).join('');
+
+  document.getElementById('scanBlock').style.display = scanRows.length ? '' : 'none';
+  document.getElementById('scanBody').innerHTML = scanRows.map(r =>
+    `<tr><td>${game(r.lt)}</td><td class="num">${fmt(r.n)}</td>` +
+    [0, 1, 2, 3, 4, 5].map(i => `<td class="num">${fmt((r.dist || {})[i] || 0)}</td>`).join('') +
+    `<td class="num">${fmt(r.special)}</td><td>${esc(tiers(r.tiers))}</td></tr>`
+  ).join('');
+}
+
+// -- Data health --
+
+function renderHealth() {
+  const section = document.getElementById('healthSection');
+  const h = v3() && v3().health;
+  if (healthChart) { healthChart.destroy(); healthChart = null; }
+  const byDay = (h && h.byDay && typeof h.byDay === 'object') ? h.byDay : {};
+  const days = Object.keys(byDay).sort().slice(-14);
+  const alerts = (h && Array.isArray(h.alerts)) ? h.alerts.filter(a => a && typeof a === 'object') : [];
+  if (!days.length && !alerts.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+
+  const perSrc = {};
+  for (const d of days) {
+    for (const [src, c] of Object.entries(byDay[d] || {})) {
+      const p = perSrc[src] || (perSrc[src] = { ok: 0, fail: 0 });
+      p.ok += Number(c && c.ok) || 0; p.fail += Number(c && c.fail) || 0;
+    }
+  }
+  const srcs = Object.keys(perSrc).sort((a, b) => (perSrc[b].ok + perSrc[b].fail) - (perSrc[a].ok + perSrc[a].fail));
+  document.getElementById('healthChartWrap').style.display = srcs.length ? '' : 'none';
+  if (srcs.length) {
+    const ctx = document.getElementById('healthChart').getContext('2d');
+    healthChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: srcs,
+        datasets: [
+          { label: 'OK', data: srcs.map(s => perSrc[s].ok), backgroundColor: '#3fb950', borderRadius: 3 },
+          { label: 'Failed', data: srcs.map(s => perSrc[s].fail), backgroundColor: '#f85149', borderRadius: 3 },
+        ],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: LEGEND,
+          tooltip: { callbacks: { footer(items) {
+            const p = perSrc[srcs[items[0].dataIndex]]; const t = p.ok + p.fail;
+            return t ? `Fail share: ${(p.fail / t * 100).toFixed(1)}%` : '';
+          } } },
+        },
+        scales: {
+          x: { stacked: true, ticks: { color: '#8b949e' }, grid: { display: false } },
+          y: { stacked: true, ticks: { color: '#8b949e', precision: 0 }, grid: { color: '#21262d' }, beginAtZero: true },
+        },
+      },
+    });
+  }
+
+  document.getElementById('healthAlerts').innerHTML = alerts.map(a =>
+    `<li>${esc(a.src || 'unknown source')} · ${esc(a.day || '')} · ${a.failShare != null && !isNaN(a.failShare) ? (Number(a.failShare) * 100).toFixed(0) + '% of fetches failed' : 'alert'}</li>`
+  ).join('');
+
+  const rej = (v3().rejected && typeof v3().rejected === 'object') ? v3().rejected : null;
+  const parts = [];
+  if (days.length) parts.push(`Fetch outcomes reported by the app over the last ${days.length} day${days.length === 1 ? '' : 's'} (${fmtDay(days[0])} – ${fmtDay(days[days.length - 1])})`);
+  if (rej) parts.push(`rejected by the worker (30d): ${fmt(rej.events)} events, ${fmt(rej.results)} results, ${fmt(rej.packs)} packs`);
+  if (v3().channel) parts.push(`channel: ${v3().channel}`);
+  document.getElementById('healthCaption').textContent = parts.join(' · ') + (parts.length ? '.' : '');
 }
 
 // ---- EVENT HANDLERS ----
