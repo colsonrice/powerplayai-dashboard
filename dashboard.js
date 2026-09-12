@@ -58,6 +58,9 @@ const EVENT_CATALOG = [
 ];
 const DEFERRED_EVENTS = new Set(['use_numbers_tapped', 'official_lottery_opened', 'retailer_locator_opened']);
 
+function readPref(key) { try { return localStorage.getItem(key); } catch (e) { return null; } }
+function writePref(key, value) { try { localStorage.setItem(key, value); } catch (e) { /* private mode */ } }
+
 // ============================================================================
 // State
 // ============================================================================
@@ -67,6 +70,9 @@ const state = {
   subsError: null,
   window: Number(params.get('window')) || 30,
   game: LOTTERIES.includes(params.get('game')) ? params.get('game') : 'all',
+  // 'results' = the public proof page (Scoreboard + Proof); 'all' adds the loop, money, ops and explorer chapters.
+  view: (params.get('view') === 'all' || params.get('ops') === '1' || params.has('event') || params.has('dim')) ? 'all'
+    : (params.get('view') === 'results' ? 'results' : (readPref('ppai.dash.view') || 'results')),
   charts: new Map(),    // mountId → [Chart]
   explore: { event: params.get('event') || 'forecast_generated', dim: params.get('dim') || 'model' },
   leaderboardSort: { col: 'n', dir: 'desc' },
@@ -526,14 +532,16 @@ function renderScoreboard(mount) {
   const newDev7 = sum(snaps.slice(-7).map((s) => s.newUsers));
   const hist = (state.data && Array.isArray(state.data.resultsHistory)) ? state.data.resultsHistory.filter((r) => r && isDay(r.date)).sort((a, b) => a.date.localeCompare(b.date)) : [];
   const perDay = hist.map((r, i) => (i ? Math.max(0, num(r.predictions) - num(hist[i - 1].predictions)) : 0)).slice(-14);
+  const opsOnly = (el) => { el.dataset.ops = ''; return el; };
   const k = h('div', { class: 'card' }, tiles(
     tile('Lines scored', compact(t.n), { sub: state.game === 'all' ? `+${fmt(sum(perDay.slice(-7)))} in 7d` : 'all-time · this game', spark: state.game === 'all' ? perDay : null }),
     tile('Hit ≥1 number', compact(t.hits), { sub: t.n ? pct(t.hits / t.n) + ' of lines' : '' }),
     tile('Money won', h('span', null, money(t.usd), t.eur ? h('small', null, ` + ${money(t.eur, 'EUR')}`) : null), { gold: true, sub: t.jackpots ? `${fmt(t.jackpots)} jackpots` : 'no jackpots yet' }),
     tile('Devices active 7d', fmt(active.d7), { sub: dev ? `${fmt(active.d1)} today · ${fmt(active.d30)} in 30d` : 'needs v3' }),
-    tile('Subscribers', fmt(subs.subscribed), { sub: last && wk ? ['7d', deltaTag(num(last.subscribed) - num(wk.subscribed)), '30d', deltaTag(num(last.subscribed) - num(mo.subscribed))] : '' }),
-    tile('Conversion', subs.total ? pct(num(subs.subscribed) / num(subs.total)) : '—', { sub: `${fmt(subs.subscribed)} of ${fmt(subs.total)} devices (90d)` }),
-    tile('New devices 7d', fmt(newDev7), { sub: last && wk ? ['devices 7d', deltaTag(num(last.total) - num(wk.total))] : '' }),
+    tile('Devices seen 90d', fmt(subs.total), { sub: last && wk ? ['7d', deltaTag(num(last.total) - num(wk.total)), '30d', deltaTag(num(last.total) - num(mo.total))] : 'reporting devices' }),
+    opsOnly(tile('Subscribers', fmt(subs.subscribed), { sub: last && wk ? ['7d', deltaTag(num(last.subscribed) - num(wk.subscribed)), '30d', deltaTag(num(last.subscribed) - num(mo.subscribed))] : '' })),
+    opsOnly(tile('Conversion', subs.total ? pct(num(subs.subscribed) / num(subs.total)) : '—', { sub: `${fmt(subs.subscribed)} of ${fmt(subs.total)} devices (90d)` })),
+    opsOnly(tile('New devices 7d', fmt(newDev7), { sub: 'first seen this week' })),
   ));
   mount.appendChild(k);
 }
@@ -705,16 +713,22 @@ function renderProof(mount) {
     empty: 'Daily snapshots begin after the next 00:30 UTC run.', foot: 'Cumulative hits ÷ cumulative lines at each day\'s snapshot. The chance line is weighted by the community\'s mix of games.',
   }));
 
-  // --- Recent lines ---
-  const recent = recentResults().slice(0, 24);
+  // --- Recent lines (first 10, the rest behind one tap) ---
+  const recent = recentResults().slice(0, 30);
+  const FEED_FIRST = 10;
+  const feedRow = (r) => {
+    const hit = num(r.mainMatches) > 0 || r.specialMatch || num(r.specialMatchCount) > 0;
+    const stars = num(r.specialMatchCount);
+    const txt = num(r.mainMatches) > 0 ? `${num(r.mainMatches)} of 5${r.lotteryType === 'euroMillions' ? (stars ? ` + ${stars} star${stars > 1 ? 's' : ''}` : '') : (r.specialMatch ? ' + special' : '')}` : (r.specialMatch || stars ? 'Special only' : 'No match');
+    return h('div', { class: 'feed-row' }, chip(r.lotteryType), modelLabel(r.modelType), balls(r.predictedNumbers, r.winningNumbers, r.lotteryType),
+      h('span', { class: 'result' + (hit ? '' : ' miss') }, txt), h('span', { class: 'prize' }, num(r.prize) > 0 ? money(r.prize, r.currency === 'EUR' ? 'EUR' : 'USD') : ''), h('span', { class: 'date' }, r.drawDate || ''));
+  };
+  const feed = h('div', { class: 'feed' }, ...recent.slice(0, FEED_FIRST).map(feedRow));
+  const rest = recent.slice(FEED_FIRST);
+  const moreBtn = rest.length ? h('button', { type: 'button', class: 'more-btn' }, `Show ${fmt(rest.length)} more lines`) : null;
+  if (moreBtn) moreBtn.addEventListener('click', () => { append(feed, rest.map(feedRow)); moreBtn.remove(); });
   mount.appendChild(card({ title: 'Recent lines', kicker: 'Latest scored forecasts', foot: 'Each row is one forecast line as scored by the device that revealed it. Special ball shown after the divider.' },
-    recent.length ? h('div', { class: 'feed' }, ...recent.map((r) => {
-      const hit = num(r.mainMatches) > 0 || r.specialMatch || num(r.specialMatchCount) > 0;
-      const stars = num(r.specialMatchCount);
-      const txt = num(r.mainMatches) > 0 ? `${num(r.mainMatches)} of 5${r.lotteryType === 'euroMillions' ? (stars ? ` + ${stars} star${stars > 1 ? 's' : ''}` : '') : (r.specialMatch ? ' + special' : '')}` : (r.specialMatch || stars ? 'Special only' : 'No match');
-      return h('div', { class: 'feed-row' }, chip(r.lotteryType), modelLabel(r.modelType), balls(r.predictedNumbers, r.winningNumbers, r.lotteryType),
-        h('span', { class: 'result' + (hit ? '' : ' miss') }, txt), h('span', { class: 'prize' }, num(r.prize) > 0 ? money(r.prize, r.currency === 'EUR' ? 'EUR' : 'USD') : ''), h('span', { class: 'date' }, r.drawDate || ''));
-    })) : emptyState('No scored lines for this game yet.')));
+    recent.length ? [feed, moreBtn] : emptyState('No scored lines for this game yet.')));
 }
 
 // ============================================================================
@@ -1215,6 +1229,27 @@ function wireFilters() {
   segG.addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; state.game = b.dataset.game || 'all'; sync(); renderAll(); });
   sync();
 }
+// View: 'results' (public proof) vs 'all' (adds the operator chapters). Remembered per browser.
+function applyView() {
+  document.body.dataset.view = state.view;
+  document.querySelectorAll('#segView button').forEach((b) => b.classList.toggle('active', b.dataset.view === state.view));
+  if (state.view === 'all') {
+    // Charts built inside display:none containers have no size; give them one now that they are visible.
+    setTimeout(() => { for (const list of state.charts.values()) for (const c of list) { try { c.resize(); } catch (e) { /* noop */ } } }, 0);
+  }
+}
+function wireView() {
+  const seg = $('segView'); if (!seg) return;
+  seg.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    state.view = b.dataset.view === 'all' ? 'all' : 'results';
+    writePref('ppai.dash.view', state.view);
+    applyView();
+    observeReveals();
+  });
+  applyView();
+}
+
 // Chapter nav highlighting + reveal animation
 let revealObserver = null;
 function observeReveals() {
@@ -1243,6 +1278,7 @@ function wireNav() {
 // Init
 setChartDefaults();
 wireFilters();
+wireView();
 wireNav();
 load();
 let timer = setInterval(load, REFRESH_MS);

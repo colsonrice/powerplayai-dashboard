@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard.css?v=3">
+<link rel="stylesheet" href="dashboard.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -20,11 +20,15 @@
       <nav class="nav" id="nav" aria-label="Chapters">
         <a href="#scoreboard">Scoreboard</a>
         <a href="#proof">Proof</a>
-        <a href="#loop">The loop</a>
-        <a href="#money">Money</a>
-        <a href="#ops">Ops</a>
-        <a href="#explore">Explore</a>
+        <a href="#loop" data-ops>The loop</a>
+        <a href="#money" data-ops>Money</a>
+        <a href="#ops" data-ops>Ops</a>
+        <a href="#explore" data-ops>Explore</a>
       </nav>
+      <div class="seg view-seg" id="segView" role="group" aria-label="View" title="Results shows the public proof; All data adds product, revenue and ops chapters">
+        <button type="button" data-view="results" class="active">Results</button>
+        <button type="button" data-view="all">All data</button>
+      </div>
       <div class="status-pill" id="statusPill"><span class="led"></span><span id="statusText">Connecting…</span></div>
     </div>
     <div class="filters" id="filters">
@@ -78,7 +82,7 @@
       <div class="grid" id="mount-proof"></div>
     </section>
 
-    <section class="chapter" id="loop">
+    <section class="chapter" id="loop" data-ops>
       <div class="chapter-head">
         <div>
           <span class="eyebrow">The loop</span>
@@ -89,7 +93,7 @@
       <div class="grid" id="mount-loop"></div>
     </section>
 
-    <section class="chapter" id="money">
+    <section class="chapter" id="money" data-ops>
       <div class="chapter-head">
         <div>
           <span class="eyebrow">Money</span>
@@ -100,7 +104,7 @@
       <div class="grid" id="mount-money"></div>
     </section>
 
-    <section class="chapter" id="ops">
+    <section class="chapter" id="ops" data-ops>
       <div class="chapter-head">
         <div>
           <span class="eyebrow">Ops</span>
@@ -111,7 +115,7 @@
       <div class="grid" id="mount-ops"></div>
     </section>
 
-    <section class="chapter" id="explore">
+    <section class="chapter" id="explore" data-ops>
       <div class="chapter-head">
         <div>
           <span class="eyebrow">Explore</span>
@@ -131,6 +135,6 @@
   <p>© PowerPlayAI · <a href="../powerplayai.html">About</a> · <a href="../powerplayai-picks/">House picks</a> · <a href="../powerplayai-proof.html">Proof &amp; methodology</a> · <a href="../powerplayai-privacy.html">Privacy</a></p>
 </footer>
 
-<script src="dashboard.js?v=3"></script>
+<script src="dashboard.js?v=4"></script>
 </body>
 </html>
