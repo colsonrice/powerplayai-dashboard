@@ -17,7 +17,7 @@ const params = new URLSearchParams(location.search);
 const API_URL = params.get('api') || `${WORKER}/stats`;
 const SUBS_URL = params.get('subs') || (params.get('api') ? null : `${WORKER}/subscription-events`);
 const REFRESH_MS = 300000;               // the worker's edge cache is 5 minutes
-const PAIRED_MIN_PAIRS = 200;            // paired verdicts speak at this sample size
+// Live comparisons remain descriptive; no automatic pair-count verdict.
 const V3_SINCE = '2026-09-10';           // first day v3 rows landed in production
 
 const LOTTERIES = ['powerball', 'megaMillions', 'euroMillions'];
@@ -52,7 +52,7 @@ const EVENT_CATALOG = [
   'paywall_view', 'paywall_dismiss', 'purchase_started', 'purchase_completed', 'purchase_failed', 'purchase_cancelled', 'purchase_pending',
   'subscribe', 'restore_started', 'restore_completed', 'restore_empty', 'restore_failed', 'model_chooser_opened', 'enhanced_viewed',
   'evidence_opened', 'quantum_details_opened', 'model_selected', 'notif_optin', 'notif_scheduled', 'notif_opened', 'notif_disabled_in_app',
-  'notif_enabled_in_app', 'screen_view', 'language_changed', 'favorite_saved', 'pack_generated', 'edge_window_changed', 'widget_open',
+  'notif_enabled_in_app', 'notif_scheduled_unique', 'notif_opened_unique', 'screen_view', 'language_changed', 'favorite_saved', 'pack_generated', 'edge_window_changed', 'widget_open',
   'review_prompt', 'scan', 'scan_result', 'error_shown', 'data_fetch', 'data_staleness', 'data_disagreement', 'jackpot_parse',
   'enhanced_run', 'metrickit',
 ];
@@ -147,15 +147,6 @@ for (const l of LOTTERIES) {
   CHANCE_HIT2[l] = 1 - p0 - (5 * choose(POOL[l] - 5, 4)) / choose(POOL[l], 5);
   EXPECTED_MAIN[l] = 25 / POOL[l];
 }
-// Wilson 95% interval for a proportion.
-function wilson(hits, n) {
-  if (!n) return [0, 0];
-  const z = 1.96, p = hits / n, z2 = z * z;
-  const denom = 1 + z2 / n, center = (p + z2 / (2 * n)) / denom;
-  const half = (z * Math.sqrt((p * (1 - p)) / n + z2 / (4 * n * n))) / denom;
-  return [Math.max(0, center - half), Math.min(1, center + half)];
-}
-
 // ============================================================================
 // Data access
 // ============================================================================
@@ -433,11 +424,6 @@ function heatCell(value, opts = {}) {
   return h('span', { class: 'heat', style: { background: `rgba(139,123,255,${(0.08 + a * 0.55).toFixed(2)})`, color: a > 0.55 ? INK : '#c9c6ff' } }, opts.pct ? pct(v, 0) : fmt(v));
 }
 function statusChip(kind, text) { return h('span', { class: 'status-chip ' + kind }, text); }
-function verdictFromCI(lo, hi, baseline) {
-  if (lo > baseline) return { cls: 'ahead', text: 'Ahead of chance' };
-  if (hi < baseline) return { cls: 'behind', text: 'Behind chance' };
-  return { cls: 'flat', text: 'Within chance' };
-}
 function balls(predicted, winning, lottery, opts = {}) {
   const euro = lottery === 'euroMillions';
   const mainN = 5;
@@ -472,7 +458,7 @@ function modelRows(games = gamesInScope()) {
     }
   }
   return Object.values(acc).filter((r) => r.n > 0).map((r) => {
-    r.rate = r.hits / r.n; r.chance = r.chanceW / r.n; r.ci = wilson(r.hits, r.n); r.avg = r.matches / r.n; r.expAvg = r.expMain / r.n;
+    r.rate = r.hits / r.n; r.chance = r.chanceW / r.n; r.avg = r.matches / r.n; r.expAvg = r.expMain / r.n;
     return r;
   });
 }
@@ -499,32 +485,25 @@ function renderScoreboard(mount) {
   const dev = v3() && isObj(v3().devices) ? v3().devices : null;
   const active = dev && isObj(dev.active) ? dev.active : {};
 
-  // Hero — Neuron in scope, else the model with the most lines.
-  const hero = rows.find((r) => r.model === 'enhanced') || rows.slice().sort((a, b) => b.n - a.n)[0];
+  const evidence = state.evidence;
+  const hero = evidence && evidence.models.find(m => m.id === 'proposal-distribution-t32-p128');
+  const live = v3()?.evidenceScope === 'pair_tagged_5_1_plus' ? v3()?.arms?.powerball?.byModel?.enhanced?.paired : null;
   const heroCard = h('div', { class: 'card hero-card accent' });
   if (hero) {
-    const v = verdictFromCI(hero.ci[0], hero.ci[1], hero.chance);
-    const scope = state.game === 'all' ? 'across all games' : 'on ' + gameName(state.game);
     heroCard.appendChild(h('div', { class: 'hero' },
       h('div', null,
-        h('span', { class: 'kicker', style: { fontFamily: 'var(--mono)', fontSize: '0.64rem', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--faint)' } }, `${modelName(hero.model)} · live hit rate ${scope}`),
-        h('div', { class: 'hero-figure' }, (hero.rate * 100).toFixed(1), h('small', null, '%')),
-        h('div', { class: 'hero-lead' }, `${modelName(hero.model)} lines matched at least one main number `, h('em', null, `${(hero.rate * 100).toFixed(1)}%`), ' of the time on live draws. Chance is ', h('em', null, `${(hero.chance * 100).toFixed(1)}%`), '.'),
-        h('span', { class: 'verdict ' + v.cls }, v.text, ` · ${signed((hero.rate - hero.chance) * 100, 1, ' pts')}`),
-      ),
+        h('span', { class: 'kicker' }, 'Powerball · retrospective development study'),
+        h('div', { class: 'hero-figure' }, (hero.value * 100).toFixed(1), h('small', null, '%')),
+        h('div', { class: 'hero-lead' }, 'Neural Focus 2 matched at least one main number across ', h('em', null, fmt(evidence.draw_count)), ' historical drawings. Random expectation: ', pct(evidence.baseline), '.'),
+        h('span', { class: 'verdict collecting' }, 'Historical result · future advantage unproven')),
       h('div', null,
         h('div', { class: 'hero-meta' },
-          h('span', { class: 'chip-stat' }, h('b', null, fmt(hero.n)), ' lines scored'),
-          h('span', { class: 'chip-stat' }, h('b', null, fmt(hero.hits)), ' hit ≥1 number'),
-          h('span', { class: 'chip-stat' }, '95% CI ', h('b', null, `${pct(hero.ci[0])} – ${pct(hero.ci[1])}`)),
-          h('span', { class: 'chip-stat' }, 'avg matches ', h('b', null, hero.avg.toFixed(3)), ` vs ${hero.expAvg.toFixed(3)} expected`),
-          h('span', { class: 'chip-stat' }, 'money ', h('b', null, [hero.moneyUSD ? money(hero.moneyUSD) : null, hero.moneyEUR ? money(hero.moneyEUR, 'EUR') : null].filter(Boolean).join(' + ') || '$0')),
-        ),
-        h('div', { class: 'card-foot' }, 'The interval is a 95% Wilson interval on the hit rate. "Ahead of chance" only when the whole interval sits above the chance line. Legacy and 5.1 devices both count here; the paired control in Proof is the stricter test.'),
-      )));
-  } else {
-    heroCard.appendChild(emptyState('No scored lines for this game yet.'));
-  }
+          h('span', { class: 'chip-stat' }, `${evidence.range[0]} – ${evidence.range[1]}`),
+          h('span', { class: 'chip-stat' }, `${evidence.models.length} policies published, including those that lost`),
+          h('span', { class: 'chip-stat' }, 'Exploratory draw-block interval ', `${pct(hero.interval[0])} – ${pct(hero.interval[1])}`)),
+        h('p', { class: 'card-foot' }, 'Selected after repeated searches on previously examined history; the interval is not adjusted for model selection. Applies to Powerball only, regardless of the game filter.'),
+        h('p', { class: 'card-foot' }, live?.pairs ? `Live Neuron check: ${pct(live.modelHitRate)} draw-averaged hit rate over ${fmt(live.draws)} drawings (${fmt(live.pairs)} pairs). These observations do not yet establish whether the backtest generalizes.` : 'Live Neuron check: awaiting paired Powerball results.'))));
+  } else heroCard.appendChild(emptyState('Historical evidence could not be loaded. Live observations remain available below.', 'Unavailable'));
   mount.appendChild(heroCard);
 
   // KPI tiles
@@ -539,8 +518,8 @@ function renderScoreboard(mount) {
     tile('Money won', h('span', null, money(t.usd), t.eur ? h('small', null, ` + ${money(t.eur, 'EUR')}`) : null), { gold: true, sub: t.jackpots ? `${fmt(t.jackpots)} jackpots` : 'no jackpots yet' }),
     tile('Devices active 7d', fmt(active.d7), { sub: dev ? `${fmt(active.d1)} today · ${fmt(active.d30)} in 30d` : 'needs v3' }),
     tile('Devices seen 90d', fmt(subs.total), { sub: last && wk ? ['7d', deltaTag(num(last.total) - num(wk.total)), '30d', deltaTag(num(last.total) - num(mo.total))] : 'reporting devices' }),
-    opsOnly(tile('Subscribers', fmt(subs.subscribed), { sub: last && wk ? ['7d', deltaTag(num(last.subscribed) - num(wk.subscribed)), '30d', deltaTag(num(last.subscribed) - num(mo.subscribed))] : '' })),
-    opsOnly(tile('Conversion', subs.total ? pct(num(subs.subscribed) / num(subs.total)) : '—', { sub: `${fmt(subs.subscribed)} of ${fmt(subs.total)} devices (90d)` })),
+    opsOnly(tile('Paid Apple subscriptions', state.subsError ? '—' : fmt(state.subs?.snapshot?.paid), { sub: state.subs?.snapshot ? `Apple report · ${state.subs.snapshot.day}` : 'daily report unavailable' })),
+    opsOnly(tile('Subscribed device share', subs.total ? pct(num(subs.subscribed) / num(subs.total)) : '—', { sub: `${fmt(subs.subscribed)} of ${fmt(subs.total)} devices (90d)` })),
     opsOnly(tile('New devices 7d', fmt(newDev7), { sub: 'first seen this week' })),
   ));
   mount.appendChild(k);
@@ -554,45 +533,31 @@ function renderProof(mount) {
   const scopeGames = gamesInScope();
   const mixed = state.game === 'all';
 
-  // --- Model vs chance (range rows) ---
-  const list = h('div', { class: 'range-list' });
-  const axisMax = 0.6;
-  rows.forEach((r, i) => {
-    const v = verdictFromCI(r.ci[0], r.ci[1], r.chance);
-    const row = h('div', { class: 'range-row' + (i ? ' no-chance-label' : '') },
-      h('div', null, modelLabel(r.model), h('div', { class: 'muted', style: { color: FAINT, fontSize: '0.74rem', marginLeft: '17px' } }, `${fmt(r.n)} lines`)),
-      h('div', { class: 'range-track', title: `${modelName(r.model)}: ${pct(r.rate)} (95% CI ${pct(r.ci[0])}–${pct(r.ci[1])}) vs chance ${pct(r.chance)}` },
-        h('span', { class: 'range-bar', style: { width: pct(clamp(r.rate / axisMax, 0, 1), 1), background: modelColor(r.model) } }),
-        h('span', { class: 'range-ci', style: { left: pct(clamp(r.ci[0] / axisMax, 0, 1), 1), width: pct(clamp((r.ci[1] - r.ci[0]) / axisMax, 0, 1), 1) } }),
-        h('span', { class: 'range-chance', style: { left: pct(clamp(r.chance / axisMax, 0, 1), 1) } })),
-      h('div', { class: 'range-val' }, h('b', null, pct(r.rate)), `${signed((r.rate - r.chance) * 100, 1, ' pts')} · CI ${pct(r.ci[0], 0)}–${pct(r.ci[1], 0)}`, h('br'), h('span', { class: 'status-chip ' + (v.cls === 'ahead' ? 'ok' : v.cls === 'behind' ? 'crit' : 'muted'), style: { marginTop: '3px' } }, v.text)));
-    list.appendChild(row);
-  });
-  list.appendChild(h('div', { class: 'range-row' }, h('span'), h('div', { class: 'range-axis' }, '0%', '15%', '30%', '45%', '60%'), h('span')));
-  const detailCols = [
-    { key: 'model', label: 'Model', render: (r) => modelLabel(r.model) },
-    { key: 'n', label: 'Lines', num: true, render: (r) => fmt(r.n) },
-    { key: 'hits', label: 'Hit ≥1', num: true, render: (r) => fmt(r.hits) },
-    { key: 'rate', label: 'Hit rate', num: true, render: (r) => pct(r.rate) },
-    { key: 'chance', label: 'Chance', num: true, render: (r) => pct(r.chance) },
-    { key: 'hit2', label: '≥2 numbers', num: true, render: (r) => `${fmt(r.hit2)} (${pct(r.hit2 / r.n)})` },
-    { key: 'avg', label: 'Avg matches', num: true, render: (r) => r.avg.toFixed(3) },
-    { key: 'expAvg', label: 'Expected', num: true, render: (r) => r.expAvg.toFixed(3) },
-    { key: 'ratio', label: 'Ratio', num: true, render: (r) => (r.expAvg ? (r.avg / r.expAvg).toFixed(2) + '×' : '—') },
-    { key: 'special', label: 'Special ball', num: true, render: (r) => `${fmt(r.special)}${r.expSpecial ? ` vs ${fmt(r.expSpecial, 0)} exp.` : ''}` },
-    { key: 'money', label: 'Money', num: true, cls: () => 'money', render: (r) => [r.moneyUSD ? money(r.moneyUSD) : null, r.moneyEUR ? money(r.moneyEUR, 'EUR') : null].filter(Boolean).join(' + ') || '$0' },
-  ];
-  const detailBtn = h('button', { type: 'button', class: 'tool-btn' }, 'Details');
-  const detailWrap = h('div', { style: { display: 'none', marginTop: '14px' } }, rows.length ? table(detailCols, rows) : null);
-  detailBtn.addEventListener('click', () => { const open = detailWrap.style.display === 'none'; detailWrap.style.display = open ? '' : 'none'; detailBtn.classList.toggle('active', open); });
-  mount.appendChild(card({
-    title: 'Model vs chance', kicker: 'All-time · lines with ≥1 main-number match', cls: 'two-thirds', tools: [detailBtn],
-    note: mixed ? 'Chance is weighted by each model\'s mix of games (32.2% Powerball, 31.7% Mega Millions, 42.3% EuroMillions).' : `Chance for ${gameName(state.game)} is ${pct(CHANCE_HIT[state.game])} for a random line.`,
-    foot: 'Bars are the observed hit rate; the bracket is the 95% Wilson interval; the gold line is chance. A short interval means many lines. Colors are fixed per model.',
-  }, rows.length ? list : emptyState('No scored lines for this game yet.'), detailWrap));
+  const evidence = state.evidence;
+  if (evidence) {
+    const details = h('details', { style: { marginTop: '14px' } },
+      h('summary', null, `All ${evidence.models.length} historical policies — wins and losses`),
+      table([
+        { key: 'label', label: 'Policy', render: r => r.label },
+        { key: 'value', label: 'Hit ≥1 main', num: true, render: r => pct(r.value) },
+        { key: 'interval', label: 'Draw-block 95% interval', num: true, render: r => `${pct(r.interval[0])} – ${pct(r.interval[1])}` },
+      ], evidence.models));
+    mount.appendChild(card({ title: 'Complete Powerball development record', kicker: `${fmt(evidence.draw_count)} drawings · ${evidence.range.join(' – ')}`,
+      note: evidence.allowed_public_claim, foot: evidence.limitation }, details,
+      h('p', { class: 'card-foot' }, h('a', { href: './evidence.json' }, 'Download the evidence summary'), ` · artifact ${evidence.version} · source checksum included in the download`)));
+  }
+  mount.appendChild(card({ title: 'Historical community observations', kicker: 'All-time · includes unauditable legacy totals', cls: 'two-thirds',
+    note: 'Lines are repeated within drawings and span older engines. These totals cannot establish a model advantage.',
+    foot: mixed ? 'Random expectation is weighted by the mix of games. No confidence interval or verdict is inferred from these totals.' : `Random expectation for ${gameName(state.game)}: ${pct(CHANCE_HIT[state.game])}.` },
+    rows.length ? table([
+      { key: 'model', label: 'Model', render: r => modelLabel(r.model) },
+      { key: 'n', label: 'Lines', num: true, render: r => fmt(r.n) },
+      { key: 'rate', label: 'Hit ≥1 main', num: true, render: r => pct(r.rate) },
+      { key: 'chance', label: 'Random expectation', num: true, render: r => pct(r.chance) },
+    ], rows) : emptyState('No historical observations for this game.')));
 
   // --- Since v3: matches vs expected, per arm ---
-  const arms = v3() && isObj(v3().arms) ? v3().arms : {};
+  const arms = v3()?.evidenceScope === 'pair_tagged_5_1_plus' && isObj(v3().arms) ? v3().arms : {};
   const v3rows = [];
   for (const l of scopeGames) {
     const a = arms[l]; if (!isObj(a)) continue;
@@ -606,9 +571,9 @@ function renderProof(mount) {
   for (const r of v3rows) { const m = merged[r.model] || (merged[r.model] = { model: r.model, n: 0, hits: 0, sumMain: 0, exp: 0 }); m.n += r.n; m.hits += r.hits; m.sumMain += r.sumMain; m.exp += r.exp; }
   const v3list = Object.values(merged).sort((a, b) => (a.model === 'control') - (b.model === 'control') || b.n - a.n);
   mount.appendChild(card({
-    title: 'Since 5.1', kicker: `v3 rows · from ${fmtDay(V3_SINCE)}`, cls: 'third',
-    note: 'Main-number matches counted on 5.1 devices, against the number a random line would be expected to make.',
-    foot: 'Expected = lines × 5 ÷ pool (0.362 Powerball, 0.357 Mega Millions, 0.500 EuroMillions). The paired random rows are the control lines.',
+    title: 'Paired-era forecasts', kicker: 'Pair-tagged reports · 5.1+', cls: 'third',
+    note: 'Only 5.1+ reports with a pair ID and a non-legacy origin. Older history uploaded after an upgrade is excluded.',
+    foot: 'Expected = lines × 25 ÷ pool (0.362 Powerball, 0.357 Mega Millions, 0.500 EuroMillions). The paired random rows are the control lines.',
   }, v3list.length ? table([
     { key: 'model', label: 'Arm', render: (r) => modelLabel(r.model) },
     { key: 'n', label: 'Lines', num: true, render: (r) => fmt(r.n) },
@@ -618,37 +583,28 @@ function renderProof(mount) {
     { key: 'ratio', label: 'Ratio', num: true, render: (r) => (r.exp ? (r.sumMain / r.exp).toFixed(2) + '×' : '—') },
   ], v3list) : emptyState('No 5.1 lines scored for this game yet. Rows appear once a 5.1 device reveals a draw.')));
 
-  // --- Paired control cards ---
+  // Repeated lines on a drawing do not add independent evidence.
   const pairedGrid = h('div', { class: 'paired-grid' });
+  const interval = p => Array.isArray(p?.drawCI95) ? `exploratory 95% draw-block interval ${signed(p.drawCI95[0], 3)} to ${signed(p.drawCI95[1], 3)}` : 'interval unavailable: too few independent drawings or no observed variation';
   for (const l of scopeGames) {
-    const a = isObj(arms[l]) ? arms[l] : null;
-    const p = a && isObj(a.paired) ? a.paired : { pairs: 0, meanDiff: 0, ci95: [0, 0], diffMain: 0 };
-    const pairs = num(p.pairs);
-    const ci = Array.isArray(p.ci95) && p.ci95.length === 2 ? p.ci95.map(num) : [0, 0];
-    const ready = pairs >= PAIRED_MIN_PAIRS;
-    let cls = 'collecting', verdict = pairs ? 'Collecting toward a verdict' : 'Waiting for the first pair';
-    if (ready) { cls = ci[0] > 0 ? 'ahead' : ci[1] < 0 ? 'behind' : 'flat'; verdict = ci[0] > 0 ? 'Model ahead of its control' : ci[1] < 0 ? 'Control ahead of the model' : 'No measurable difference'; }
-    const cardEl = h('div', { class: 'paired ' + cls },
-      h('div', { class: 'game' }, chip(l), h('span', { class: 'muted', style: { fontFamily: 'var(--mono)', fontSize: '0.64rem', color: FAINT } }, `${fmt(pairs)} / ${PAIRED_MIN_PAIRS} pairs`)),
-      h('div', { class: 'big' }, pairs ? signed(num(p.meanDiff), 3) : '—', h('small', null, 'extra matches per line')),
-      h('div', { class: 'meta' }, pairs ? `95% CI ${signed(ci[0], 2)} to ${signed(ci[1], 2)} · ${signed(num(p.diffMain), 0)} matches in total` : 'A control line is generated beside every 5.1 forecast and scored on the same draw.'),
-      h('div', { class: 'progress' }, h('span', { style: { width: pct(clamp(pairs / PAIRED_MIN_PAIRS, 0, 1), 0) } })),
-      h('span', { class: 'verdict ' + (cls === 'collecting' ? 'collecting' : cls), style: { marginTop: '10px' } }, verdict));
-    const byModel = a && isObj(a.byModel) ? Object.entries(a.byModel).filter(([, m]) => isObj(m) && isObj(m.paired) && num(m.paired.pairs) > 0) : [];
-    if (byModel.length) cardEl.appendChild(h('div', { class: 'models' }, ...byModel.map(([m, s]) => {
-      const c = Array.isArray(s.paired.ci95) ? s.paired.ci95.map(num) : [0, 0];
-      return h('div', null, h('span', null, modelLabel(m)), h('span', null, `${signed(num(s.paired.meanDiff), 3)} · ${fmt(s.paired.pairs)} pairs · CI ${signed(c[0], 2)} to ${signed(c[1], 2)}`));
-    })));
-    pairedGrid.appendChild(cardEl);
+    const a = arms[l], p = a?.paired;
+    const el = h('div', { class: 'paired collecting' },
+      h('div', { class: 'game' }, chip(l), h('span', { class: 'muted' }, `${fmt(p?.draws || 0)} drawings · ${fmt(p?.pairs || 0)} pairs`)),
+      h('div', { class: 'big' }, p?.pairs ? signed(p.drawMeanDiff, 3) : '—', h('small', null, 'extra main matches · equal weight per draw')),
+      h('div', { class: 'meta' }, interval(p)),
+      h('span', { class: 'verdict collecting' }, 'Observational · no live advantage established'));
+    for (const [m,b] of Object.entries(a?.byModel || {})) if (b.paired?.pairs) {
+      el.appendChild(h('div', { class: 'models' }, modelLabel(m),
+        ` ${signed(b.paired.drawMeanDiff, 3)} · ${fmt(b.paired.draws)} drawings · ${fmt(b.paired.pairs)} pairs; ${interval(b.paired)}`));
+    }
+    pairedGrid.appendChild(el);
   }
-  mount.appendChild(card({
-    title: 'Paired random control', kicker: 'The honest comparison · since 5.1',
-    note: `Every forecast line on 5.1 travels with a random line generated at the same moment and scored on the same draw. The verdict speaks once a game reaches ${PAIRED_MIN_PAIRS} pairs and the whole interval clears zero.`,
-    foot: 'Mean extra main-number matches per line, model minus its control, with a 95% interval on the paired differences. Legacy Random Balanced picks are a user-selectable model, not this control.',
-  }, pairedGrid));
+  mount.appendChild(card({ title: 'Paired random comparison', kicker: 'Can the historical result hold up on new draws?',
+    note: 'Model and random lines are scored against the same winning numbers. Differences are averaged within each drawing, then each drawing receives equal weight. There is no verdict at 200 pairs.',
+    foot: 'Exploratory intervals resample blocks of five consecutive observed drawings, after at least 20 drawings. Twenty is an interval-display minimum, not proof or a stopping rule. Repeated monitoring and model selection prevent confirmatory claims.' }, pairedGrid));
 
   // --- Draw ledger ---
-  const draws = (v3() && Array.isArray(v3().draws) ? v3().draws : []).filter((d) => isObj(d) && isDay(d.draw) && scopeGames.includes(d.lottery)).sort((a, b) => b.draw.localeCompare(a.draw) || a.lottery.localeCompare(b.lottery)).slice(0, 20);
+  const draws = (v3()?.evidenceScope === 'pair_tagged_5_1_plus' && Array.isArray(v3().draws) ? v3().draws : []).filter((d) => isObj(d) && isDay(d.draw) && scopeGames.includes(d.lottery)).sort((a, b) => b.draw.localeCompare(a.draw) || a.lottery.localeCompare(b.lottery)).slice(0, 20);
   const ledgerRows = draws.map((d) => {
     const byModel = isObj(d.byModel) ? d.byModel : {};
     const n = sum(Object.values(byModel).map((m) => m && m.n)), hits = sum(Object.values(byModel).map((m) => m && m.hits));
@@ -659,8 +615,8 @@ function renderProof(mount) {
     h('span', { class: 'mini-track' }, h('span', { class: 'mini-fill' + (ctl ? ' ctl' : ''), style: { width: pct(clamp((hits / n) / 0.8, 0, 1), 0) } }), h('span', { class: 'mini-chance', style: { left: pct(chance / 0.8, 0) } })),
     h('span', null, h('b', null, pct(hits / n, 0)), h('span', { class: 'muted' }, ` ${fmt(hits)}/${fmt(n)}`))) : h('span', { class: 'muted' }, '—');
   mount.appendChild(card({
-    title: 'Draw ledger', kicker: 'Last 20 scored draws · since 5.1', cls: 'two-thirds',
-    note: 'One row per drawing: how the community\'s forecast lines did, how the paired control lines did, and how many devices reported.',
+    title: 'Draw ledger', kicker: 'Last 20 draws · pair-tagged 5.1+ forecasts', cls: 'two-thirds',
+    note: 'One row per drawing: how the community\'s forecast lines did, how the paired control lines did, with older untagged history excluded.',
     foot: 'Bars show the hit rate against an 80% axis; the gold tick is chance for that game. Per-model counts sit in the last column.',
   }, ledgerRows.length ? table([
     { key: 'draw', label: 'Draw', render: (r) => h('span', { style: { fontFamily: 'var(--mono)', fontSize: '0.76rem' } }, r.draw) },
@@ -668,7 +624,6 @@ function renderProof(mount) {
     { key: 'n', label: 'Lines', num: true, render: (r) => fmt(r.n) },
     { key: 'rate', label: 'Forecast hit rate', render: (r) => rate(r.hits, r.n, r.chance) },
     { key: 'ctl', label: 'Control', render: (r) => rate(r.ch, r.cn, r.chance, true) },
-    { key: 'devices', label: 'Devices', num: true, render: (r) => fmt(r.devices) },
     { key: 'models', label: 'By model', render: (r) => h('span', { class: 'muted' }, Object.entries(r.byModel || {}).map(([m, s]) => `${modelName(m)} ${fmt(s && s.hits)}/${fmt(s && s.n)}`).join(' · ')) },
   ], ledgerRows) : emptyState('No draws scored on 5.1 devices for this game yet.')));
 
@@ -834,18 +789,19 @@ function renderLoop(mount) {
   const optin = allTimeEvent('notif_optin') || {};
   const granted = num(optin.granted), denied = num(optin.denied);
   const notifMix = dev && isObj(dev.byNotif) ? dev.byNotif : {};
-  const sched = breakdown('notif_scheduled', 'kind', days), opened = breakdown('notif_opened', 'kind', days);
+  const sched = breakdown('notif_scheduled_unique', 'kind', days), opened = breakdown('notif_opened_unique', 'kind', days);
+  const legacyScheduled = sumEvent('notif_scheduled', null, days);
   const kindLabel = { reminder: 'Draw reminder', resultsReady: 'Results ready', nudge: 'Nudge', drawComplete: 'Draw complete', jackpot: 'Jackpot alert', hot: 'Hot numbers', other: 'Other' };
   const kindOrder = ['reminder', 'resultsReady', 'drawComplete', 'nudge', 'jackpot', 'hot', 'other'];
   const disabled = breakdown('notif_disabled_in_app', 'kind', days), enabled = breakdown('notif_enabled_in_app', 'kind', days);
   const optinTile = tile('Opt-in rate', granted + denied ? pct(granted / (granted + denied), 0) : '—', { sub: `${fmt(granted)} granted · ${fmt(denied)} denied · all-time` });
   const mixKeys = Object.keys(notifMix).filter((k) => k !== 'unknown');
-  mount.appendChild(card({ title: 'Notifications', kicker: 'Permission, status, scheduled vs opened', cls: 'half', foot: 'Status mix counts 5.1 devices only. Opened = the app was launched from a notification of that kind.' },
+  mount.appendChild(card({ title: 'Notifications', kicker: 'Permission and unique notification requests', cls: 'half', foot: `Unique requests are counted after iOS accepts scheduling, once per request. Opens count only requests measured by the new client. Cancellations and delivery are not observed: these window totals are not a delivery/open rate. Older clients reported ${fmt(legacyScheduled)} scheduling attempts.` },
     h('div', { class: 'tiles', style: { marginBottom: '14px' } }, optinTile,
-      tile('Scheduled', fmt(sumObj(sched)), { sub: `${state.window}d · ${fmt(sumObj(opened))} opened` }),
+      tile('Unique schedules', fmt(sumObj(sched)), { sub: `${state.window}d · ${fmt(sumObj(opened))} opened` }),
       tile('In-app toggles', fmt(sumObj(enabled) + sumObj(disabled)), { sub: `${fmt(sumObj(enabled))} on · ${fmt(sumObj(disabled))} off` })),
     h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px' } },
-      h('div', null, h('div', { class: 'share-title', style: { marginBottom: '8px', color: MUTED, fontSize: '0.8rem' } }, 'Scheduled by kind'),
+      h('div', null, h('div', { class: 'share-title', style: { marginBottom: '8px', color: MUTED, fontSize: '0.8rem' } }, 'Unique schedules by kind'),
         sumObj(sched) ? hbarList(kindOrder.filter((k) => sched[k]).map((k) => ({ label: kindLabel[k] || k, value: sched[k], color: ACCENT })), { tight: true }) : h('div', { class: 'empty compact' }, 'Nothing scheduled in this window.')),
       h('div', null, h('div', { class: 'share-title', style: { marginBottom: '8px', color: MUTED, fontSize: '0.8rem' } }, 'Permission status (5.1 devices)'),
         mixKeys.length ? hbarList(mixKeys.sort((a, b) => notifMix[b] - notifMix[a]).map((k) => ({ label: k, value: num(notifMix[k]), color: k === 'authorized' ? STATUS.good : k === 'denied' ? STATUS.crit : ACCENT })), { tight: true }) : h('div', { class: 'empty compact' }, 'No 5.1 devices have reported a status yet.')))));
@@ -927,9 +883,21 @@ function renderMoney(mount) {
   const snaps = (Array.isArray(subs.snapshots) ? subs.snapshots : []).filter((s) => s && isDay(s.date)).sort((a, b) => a.date.localeCompare(b.date));
   const byDate = {}; for (const s of snaps) byDate[s.date] = s;
 
-  // --- Subscribers + new devices ---
-  mount.appendChild(chartCard('money', { title: 'Subscribers', kicker: 'Daily snapshot · devices with an active or grace subscription', cls: 'half',
-    spec: { type: 'line', labels, xLabel: 'Day', datasets: [{ label: 'Subscribers', data: days.map((d) => byDate[d] ? num(byDate[d].subscribed) : null), color: ACCENT, fill: true }] },
+  const snapshot = !state.subsError && state.subs?.snapshot;
+  const appleHistory = !state.subsError && Array.isArray(state.subs?.history) ? state.subs.history.filter(s => s.day >= windowStart()) : [];
+  mount.appendChild(chartCard('money', { title: 'Paid subscriptions reported by Apple', kicker: snapshot ? `Latest daily report: ${snapshot.day}` : 'Daily Apple report unavailable',
+    spec: { type: 'line', labels: appleHistory.map(s => fmtDay(s.day)), xLabel: 'Report day', datasets: [{label:'Paid subscriptions',data:appleHistory.map(s=>s.paid),color:ACCENT}] },
+    foot: snapshot ? `${fmt(snapshot.paid)} paid subscriptions · ${fmt(snapshot.freeTrials)} free trials · ${fmt(snapshot.billingRetry)} billing retry · ${fmt(snapshot.grace)} grace. This is the app-scoped Apple subscription report, not device counts. Historical points are report snapshots, not interpolated daily counts.` : 'The daily KPI job posts the latest available report with its actual date.' }));
+  const ledger = !state.subsError && state.subs?.ledger;
+  mount.appendChild(card({ title: 'Apple subscription ledger', kicker: 'Verified notifications · one record per original transaction',
+    note: ledger?.note || 'Apple subscription accounting is unavailable.',
+    foot: ledger ? `As of ${fmtStamp(ledger.asOf)}. Notifications observed since ${ledger.historyFrom || ledger.startedAt}. Grace periods are shown separately from paid active subscriptions. Annual or dormant subscriptions outside this history may be missing.` : 'Device counts below are not a substitute.' },
+    ledger ? tiles(tile('Observed active', fmt(ledger.active)), tile('Grace', fmt(ledger.grace)), tile('Billing retry', fmt(ledger.billingRetry)),
+      tile('Auto-renew off', fmt(ledger.autoRenewOff)), tile('Observed chains', fmt(ledger.observed)), tile('Expired chains', fmt(ledger.expired)), tile('Refunded / revoked chains', fmt(ledger.refunded))) : emptyState('Awaiting verified Apple ledger data.', 'Unavailable')));
+
+  // --- Subscribed devices + new devices ---
+  mount.appendChild(chartCard('money', { title: 'Devices reporting a subscription', kicker: 'Daily snapshot · device state, not paying people', cls: 'half',
+    spec: { type: 'line', labels, xLabel: 'Day', datasets: [{ label: 'Subscribed devices', data: days.map((d) => byDate[d] ? num(byDate[d].subscribed) : null), color: ACCENT, fill: true }] },
     foot: `Now ${fmt(subs.subscribed)} of ${fmt(subs.total)} devices seen in 90 days (${subs.total ? pct(num(subs.subscribed) / num(subs.total)) : '—'}).` }));
   mount.appendChild(chartCard('money', { title: 'New devices per day', kicker: 'Daily snapshot · first seen that day', cls: 'half',
     spec: { type: 'bar', labels, xLabel: 'Day', datasets: [{ label: 'New devices', data: days.map((d) => byDate[d] ? num(byDate[d].newUsers) : 0), color: ACCENT }] },
@@ -964,7 +932,7 @@ function renderMoney(mount) {
   mount.appendChild(card({ title: 'Paywall context', kicker: 'What was true when the paywall showed', cls: 'half', foot: 'Jackpot band and draws-since-install ride on every paywall view since 5.1; price is the localized product price the sheet displayed.' },
     shareBar('By jackpot band', ordered(jp, jpOrder).map((k, i) => ({ label: jpLabel[k] || k, value: jp[k], color: k === 'unknown' ? OTHER : ORDINAL(6)[Math.max(jpOrder.indexOf(k), 0)] })), { unit: 'views' }),
     shareBar('By draws since install', ordered(dsi, dsiOrder).map((k) => ({ label: dsiLabel[k] || k, value: dsi[k], color: ORDINAL(4)[Math.max(dsiOrder.indexOf(k), 0)] })), { unit: 'views' }),
-    shareBar('Intro offer eligible', ['yes', 'no'].filter((k) => intro[k]).map((k, i) => ({ label: k === 'yes' ? 'Eligible' : 'Not eligible', value: intro[k], color: CAT[i] })), { unit: 'views' }),
+    shareBar('Intro offer eligible', ['yes', 'no', 'unknown'].filter((k) => intro[k]).map((k, i) => ({ label: k === 'yes' ? 'Eligible' : k === 'no' ? 'Not eligible' : 'Not resolved', value: intro[k], color: CAT[i] })), { unit: 'views' }),
     Object.keys(price).length ? h('div', { class: 'card-foot' }, h('b', null, 'Prices shown: '), Object.entries(price).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k.replace('_', ' ')} ×${fmt(n)}`).join(' · ')) : null));
 
   // --- Apple subscription events ---
@@ -1005,7 +973,7 @@ function renderMoney(mount) {
     emptyTag: SUBS_URL && !state.subsError ? 'Collecting' : 'Unavailable',
     foot: 'Counts of notification types as Apple delivered them; a subtype (voluntary, billing retry, auto-renew disabled) rides in the tooltip table. Verified live on 2026-09-10.' });
   appleCard.classList.add('half');
-  mount.appendChild(card({ title: 'Subscription health', kicker: `Apple · last ${state.window} days`, cls: 'half', foot: 'Renewals minus expirations and refunds is the net movement Apple reports; the subscriber line above is what devices report.' }, appleTiles,
+  mount.appendChild(card({ title: 'Subscription health', kicker: `Apple · last ${state.window} days`, cls: 'half', foot: 'Renewals extend existing subscriptions; they do not add subscribers. Expiration/refund notifications may concern the same subscription. Current state comes from the ledger above.' }, appleTiles,
     Object.keys(perDay).length ? h('div', { style: { marginTop: '14px' } }, table([{ key: 'k', label: 'Notification', render: (r) => h('span', { style: { fontFamily: 'var(--mono)', fontSize: '0.74rem' } }, r.k) }, { key: 'n', label: 'Count', num: true, render: (r) => fmt(r.n) }], Object.entries(perDay).sort((a, b) => b[1] - a[1]).map(([k, n]) => ({ k, n })))) : null));
   mount.appendChild(appleCard);
 
@@ -1013,7 +981,7 @@ function renderMoney(mount) {
   const growth = (v3() && Array.isArray(v3().growth) ? v3().growth : []).filter((r) => r && r.weekEnding).sort((a, b) => String(b.weekEnding).localeCompare(String(a.weekEnding)));
   const rec = v3() && isObj(v3().reconcile) ? v3().reconcile : null;
   const proceeds = (p) => { if (p == null || p === '') return '—'; return String(p).split(';').map((part) => { const m = part.match(/^([A-Z]{3}):(-?[\d.]+)$/); return m ? money(Number(m[2]), m[1], 2) : part; }).join(' + '); };
-  mount.appendChild(card({ title: 'Weekly growth', kicker: 'App Store Connect · posted by the Monday KPI job', cls: 'two-thirds', foot: 'Downloads, new subs, renewals, units and proceeds come from App Store Connect Sales & Trends; first opens and new devices from the app for the same ISO week.' },
+  mount.appendChild(card({ title: 'Weekly growth', kicker: 'App Store Connect · PowerPlayAI only · retried daily', cls: 'two-thirds', foot: 'Downloads, new subs, renewals, units and proceeds come from App Store Connect Sales & Trends; first opens and new devices from the app for the same ISO week. New subscription units are net of refunds; their ratio to downloads is not cohort conversion.' },
     growth.length ? table([
       { key: 'weekEnding', label: 'Week ending', render: (r) => h('b', null, r.weekEnding) },
       { key: 'firstDownloads', label: 'Downloads', num: true, render: (r) => fmt(r.firstDownloads) },
@@ -1022,7 +990,7 @@ function renderMoney(mount) {
       { key: 'newSubs', label: 'New subs', num: true, render: (r) => fmt(r.newSubs) },
       { key: 'renewals', label: 'Renewals', num: true, render: (r) => fmt(r.renewals) },
       { key: 'subUnits', label: 'Sub units', num: true, render: (r) => fmt(r.subUnits) },
-      { key: 'dlToPaid', label: 'DL→paid', num: true, render: (r) => (r.dlToPaid == null ? '—' : pct(num(r.dlToPaid) / (num(r.dlToPaid) > 1 ? 100 : 1))) },
+      { key: 'dlToPaid', label: 'New units / DL', num: true, render: (r) => (r.dlToPaid == null ? '—' : pct(r.dlToPaid)) },
       { key: 'proceeds', label: 'Proceeds', num: true, cls: () => 'money', render: (r) => proceeds(r.proceeds) },
     ], growth) : emptyState('No weekly rows yet. `node scripts/kpi/kpi.mjs --post` publishes one every Monday.')));
   const checks = [];
@@ -1032,9 +1000,9 @@ function renderMoney(mount) {
     checks.push({ kind: rec.downloads == null ? 'warn' : has('first_open_below_half_of_downloads') ? 'warn' : 'ok', title: `Downloads ${fmt(rec.downloads)} vs first opens ${fmt(rec.firstOpen)} vs new devices ${fmt(rec.newDevices)}`,
       why: rec.downloads == null ? 'No App Store row for this week yet.' : has('first_open_below_half_of_downloads') ? 'First opens come only from 5.1 devices; expect this flag until most installs are on 5.1. If it persists, check territory mix and the workers.dev DNS block.' : 'Opens and downloads agree within the tolerance.' });
     checks.push({ kind: rec.newSubsSales == null ? 'warn' : has('new_subs_vs_subscribe_events_differ_gt_1') ? 'warn' : 'ok', title: `New subs (App Store) ${fmt(rec.newSubsSales)} vs subscribe events ${fmt(rec.subscribeEvents)} vs activations ${fmt(rec.subActivations)}`,
-      why: has('new_subs_vs_subscribe_events_differ_gt_1') ? 'Subscribe events only arrive from 5.1 devices; the gap closes as the rollout completes.' : 'App Store and in-app counts agree.' });
+      why: rec.newSubsSales == null ? 'No App Store subscription row for this week; comparison unavailable.' : has('new_subs_vs_subscribe_events_differ_gt_1') ? 'Subscribe events only arrive from 5.1 devices; the gap closes as the rollout completes.' : 'App Store and in-app counts agree.' });
     checks.push({ kind: has('model_control_rows_differ_gt_5pct') ? 'crit' : 'ok', title: `Model rows ${fmt(rec.modelRows)} vs control rows ${fmt(rec.controlRows)} · ${fmt(rec.forecastsGenerated)} forecasts generated`,
-      why: has('model_control_rows_differ_gt_5pct') ? 'Every 5.1 forecast should be paired with a control line; a gap means controls are not being scored or reported.' : 'Every forecast line has its control.' });
+      why: has('model_control_rows_differ_gt_5pct') ? 'Pair-tagged 5.1+ reports differ; check delayed delivery or missing partners. Older, untagged history is excluded.' : 'Pair-tagged model and control row totals agree; individual pair completeness is checked separately.' });
   }
   mount.appendChild(card({ title: 'Reconcile', kicker: rec ? `Week ${rec.week} · ${fmtDay(rec.weekStart)} – ${fmtDay(rec.weekEnd)}` : 'Latest complete ISO week', cls: 'third', foot: 'The Monday scorecard runs the same checks. Flags are hints, not verdicts.' },
     checks.length ? h('div', { class: 'checks' }, ...checks.map((c) => h('div', { class: 'check ' + c.kind }, h('span', { class: 'mark' }, c.kind === 'ok' ? '✓' : c.kind === 'warn' ? '!' : '✕'), h('div', null, h('div', null, c.title), h('div', { class: 'why' }, c.why))))) : emptyState('Reconcile appears once a complete ISO week has been built.')));
@@ -1081,15 +1049,15 @@ function renderOps(mount) {
     h('ul', { class: 'alerts' }, ...(Array.isArray(health.alerts) ? health.alerts : []).filter((a) => isObj(a) && (!a.day || days.includes(a.day))).slice(0, 12).map((a) => h('li', { class: num(a.failShare) >= 0.8 ? 'crit' : 'warn' }, h('span', { class: 'k' }, 'alert'), `${SRC_LABEL[a.src] || a.src || 'unknown source'} · ${fmtDay(a.day)} · ${pct(a.failShare, 0)} of ${fmt(a.n)} fetches failed`)))));
 
   // --- Other data signals ---
-  const stale = breakdown('data_staleness', 'lottery', days), staleH = breakdown('data_staleness', 'hours', days), disagree = breakdown('data_disagreement', 'lottery', days), jpFail = breakdown('jackpot_parse', 'lottery', days, (p) => p.outcome === 'fail'), errs = breakdown('error_shown', 'kind', days);
+  const stale = breakdown('data_staleness', 'lottery', days), disagree = breakdown('data_disagreement', 'lottery', days), jpFail = breakdown('jackpot_parse', 'lottery', days, (p) => p.outcome === 'fail'), errs = breakdown('error_shown', 'kind', days);
   const signalRows = [
-    ...Object.entries(stale).map(([l, n]) => ({ what: 'Stale results shown', where: gameName(l), n, why: Object.entries(staleH).map(([k, c]) => `${k}h ×${fmt(c)}`).join(', ') })),
+    ...Object.entries(stale).map(([l, n]) => ({ what: 'Draw-to-fetch delay', where: gameName(l), n, why: Object.entries(breakdown('data_staleness', 'hours', days, p => p.lottery === l)).map(([k, c]) => `${k}h ×${fmt(c)}`).join(', ') })),
     ...Object.entries(disagree).map(([l, n]) => ({ what: 'Sources disagreed', where: gameName(l), n, why: 'view-model dictionary vs history cache' })),
     ...Object.entries(jpFail).map(([l, n]) => ({ what: 'Jackpot parse failed', where: gameName(l), n, why: 'headline amount not readable' })),
     ...Object.entries(errs).map(([k, n]) => ({ what: 'Error shown to user', where: k, n, why: '' })),
   ].sort((a, b2) => b2.n - a.n);
-  mount.appendChild(card({ title: 'Data signals', kicker: 'Staleness, disagreement, parse failures, errors shown', cls: 'third', foot: 'Staleness fires when the newest draw the app holds is older than the band says; disagreement when its two result stores differ.' },
-    signalRows.length ? table([{ key: 'what', label: 'Signal', render: (r) => r.what }, { key: 'where', label: 'Where', render: (r) => r.where }, { key: 'n', label: 'Count', num: true, render: (r) => fmt(r.n) }, { key: 'why', label: 'Detail', render: (r) => h('span', { class: 'muted' }, r.why) }], signalRows) : h('div', { class: 'empty' }, h('span', { class: 'tag' }, 'Quiet'), 'No staleness, disagreement, parse failures or user-facing errors in this window.')));
+  mount.appendChild(card({ title: 'Data signals', kicker: 'Return timing, disagreement, parse failures, errors shown', cls: 'third', foot: 'Draw-to-fetch delay measures the time from the drawing to the device fetching its results, often when the user returns. It is not a stale-data or source-latency measure. Each game has its own breakdown.' },
+    signalRows.length ? table([{ key: 'what', label: 'Signal', render: (r) => r.what }, { key: 'where', label: 'Where', render: (r) => r.where }, { key: 'n', label: 'Count', num: true, render: (r) => fmt(r.n) }, { key: 'why', label: 'Detail', render: (r) => h('span', { class: 'muted' }, r.why) }], signalRows) : h('div', { class: 'empty' }, h('span', { class: 'tag' }, 'Quiet'), 'No draw-to-fetch, disagreement, parse-failure or user-facing error events in this window.')));
 
   // --- Reliability: MetricKit + Neuron runs ---
   const mk = seriesByDim('metrickit', 'kind', days, { order: ['crash', 'hang', 'launch_slow', 'memory'] });
@@ -1204,7 +1172,8 @@ async function fetchJSON(url) {
 async function load() {
   const content = $('content');
   if (state.data) content.classList.add('refreshing');
-  const [stats, subs] = await Promise.allSettled([fetchJSON(API_URL), SUBS_URL ? fetchJSON(SUBS_URL) : Promise.reject(new Error('disabled'))]);
+  const [stats, subs, evidence] = await Promise.allSettled([fetchJSON(API_URL), SUBS_URL ? fetchJSON(SUBS_URL) : Promise.reject(new Error('disabled')), fetchJSON('./evidence.json')]);
+  state.evidence = evidence.status === 'fulfilled' && Array.isArray(evidence.value.models) ? evidence.value : null;
   if (subs.status === 'fulfilled' && isObj(subs.value)) { state.subs = subs.value; state.subsError = null; } else if (SUBS_URL) { state.subsError = subs.reason; console.warn('subscription-events unavailable:', subs.reason && subs.reason.message); }
   if (stats.status === 'fulfilled' && isObj(stats.value)) {
     state.data = stats.value;

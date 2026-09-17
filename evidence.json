@@ -1,0 +1,1198 @@
+{
+  "version": "9.0.0",
+  "draw_count": 1170,
+  "range": [
+    "2018-01-03",
+    "2026-09-07"
+  ],
+  "allowed_claim_level": "descriptive_only",
+  "allowed_public_claim": "History-informed picks, generated on your device. Inspect the complete development record. Better future odds have not been established.",
+  "limitation": "Observed historical leadership only. All history was previously consulted. Selection spans 104 neural/configuration policies across 9 adaptively motivated experiments plus earlier research. Repeated searches for a numerical target make the selected score optimistic. Intervals are not search adjusted. Focused policies repeat one white set, and repeated tickets do not create independent drawings. No established future advantage.",
+  "uncertainty": {
+    "level": 0.95,
+    "limitations": "Exploratory marginal intervals, not search-adjusted confirmation. Assumes approximate weak stationarity/mixing; annual policy changes and regime shifts may violate it. Zero rare-event counts may yield degenerate bootstrap intervals, not proof of impossibility.",
+    "method": "Circular moving-block percentile bootstrap of paired draw scores"
+  },
+  "source": "PowerPlayAI/ModelEvidence.json",
+  "sourceSHA256": "96566ebed719e65dd4d84e8f68e478c4d34b8128637b17c9c5b304acb7b0dbda",
+  "baseline": 0.3215728806827024,
+  "models": [
+    {
+      "id": "proposal-distribution-t32-p128",
+      "label": "Neural Focus 2 (development)",
+      "caution": null,
+      "count": 54912,
+      "interval": [
+        0.34102564102564104,
+        0.3905982905982906
+      ],
+      "value": 0.36666666666666664
+    },
+    {
+      "id": "proposal-distribution-t128-p512",
+      "label": "proposal-distribution-t128-p512",
+      "caution": null,
+      "count": 54400,
+      "interval": [
+        0.3401709401709402,
+        0.3854700854700855
+      ],
+      "value": 0.36324786324786323
+    },
+    {
+      "id": "proposal-distribution-t128-p2048",
+      "label": "proposal-distribution-t128-p2048",
+      "caution": null,
+      "count": 54272,
+      "interval": [
+        0.33589743589743587,
+        0.3871794871794872
+      ],
+      "value": 0.3623931623931624
+    },
+    {
+      "id": "proposal-distribution-t32-p512",
+      "label": "proposal-distribution-t32-p512",
+      "caution": null,
+      "count": 54272,
+      "interval": [
+        0.3384615384615385,
+        0.3854700854700855
+      ],
+      "value": 0.3623931623931624
+    },
+    {
+      "id": "proposal-distribution-t64-p128",
+      "label": "proposal-distribution-t64-p128",
+      "caution": null,
+      "count": 54272,
+      "interval": [
+        0.33587606837606837,
+        0.38632478632478634
+      ],
+      "value": 0.3623931623931624
+    },
+    {
+      "id": "proposal-distribution-t128-p128",
+      "label": "proposal-distribution-t128-p128",
+      "caution": null,
+      "count": 54016,
+      "interval": [
+        0.3350213675213675,
+        0.3854700854700855
+      ],
+      "value": 0.3606837606837607
+    },
+    {
+      "id": "proposal-distribution-t64-p512",
+      "label": "proposal-distribution-t64-p512",
+      "caution": null,
+      "count": 53888,
+      "interval": [
+        0.33418803418803417,
+        0.38290598290598293
+      ],
+      "value": 0.3598290598290598
+    },
+    {
+      "id": "regularized-distribution-h16-d0.01",
+      "label": "regularized-distribution-h16-d0.01",
+      "caution": null,
+      "count": 53888,
+      "interval": [
+        0.33418803418803417,
+        0.38290598290598293
+      ],
+      "value": 0.3598290598290598
+    },
+    {
+      "id": "representation-distribution-bce-h16",
+      "label": "representation-distribution-bce-h16",
+      "caution": null,
+      "count": 53888,
+      "interval": [
+        0.33418803418803417,
+        0.38290598290598293
+      ],
+      "value": 0.3598290598290598
+    },
+    {
+      "id": "proposal-distribution-t32-p2048",
+      "label": "proposal-distribution-t32-p2048",
+      "caution": null,
+      "count": 53376,
+      "interval": [
+        0.3282051282051282,
+        0.3820726495726494
+      ],
+      "value": 0.3564102564102564
+    },
+    {
+      "id": "proposal-distribution-t32-p1024",
+      "label": "proposal-distribution-t32-p1024",
+      "caution": null,
+      "count": 53248,
+      "interval": [
+        0.32903846153846156,
+        0.37948717948717947
+      ],
+      "value": 0.35555555555555557
+    },
+    {
+      "id": "proposal-distribution-t128-p1024",
+      "label": "proposal-distribution-t128-p1024",
+      "caution": null,
+      "count": 52864,
+      "interval": [
+        0.3264957264957265,
+        0.37606837606837606
+      ],
+      "value": 0.352991452991453
+    },
+    {
+      "id": "expanded-frequency-ranked-greedy",
+      "label": "Neural Focus (v4 review)",
+      "caution": null,
+      "count": 52448,
+      "interval": [
+        0.3230069778311966,
+        0.3767361111111111
+      ],
+      "value": 0.3502136752136752
+    },
+    {
+      "id": "proposal-distribution-t64-p2048",
+      "label": "proposal-distribution-t64-p2048",
+      "caution": null,
+      "count": 52352,
+      "interval": [
+        0.32051282051282054,
+        0.37606837606837606
+      ],
+      "value": 0.34957264957264955
+    },
+    {
+      "id": "focus-frequency-h8-p512",
+      "label": "focus-frequency-h8-p512",
+      "caution": null,
+      "count": 52224,
+      "interval": [
+        0.3213675213675214,
+        0.3752136752136752
+      ],
+      "value": 0.3487179487179487
+    },
+    {
+      "id": "regularized-distribution-h16-d0.003",
+      "label": "regularized-distribution-h16-d0.003",
+      "caution": null,
+      "count": 52224,
+      "interval": [
+        0.32393162393162395,
+        0.37096153846153834
+      ],
+      "value": 0.3487179487179487
+    },
+    {
+      "id": "regularized-distribution-h16-d0.03",
+      "label": "regularized-distribution-h16-d0.03",
+      "caution": null,
+      "count": 52224,
+      "interval": [
+        0.32393162393162395,
+        0.3717948717948718
+      ],
+      "value": 0.3487179487179487
+    },
+    {
+      "id": "representation-pooled-bce-h8",
+      "label": "representation-pooled-bce-h8",
+      "caution": null,
+      "count": 52224,
+      "interval": [
+        0.3213675213675214,
+        0.3752136752136752
+      ],
+      "value": 0.3487179487179487
+    },
+    {
+      "id": "focus-frequency-h8-p2048",
+      "label": "focus-frequency-h8-p2048",
+      "caution": null,
+      "count": 52096,
+      "interval": [
+        0.3213675213675214,
+        0.3735042735042735
+      ],
+      "value": 0.34786324786324785
+    },
+    {
+      "id": "proposal-distribution-t64-p1024",
+      "label": "proposal-distribution-t64-p1024",
+      "caution": null,
+      "count": 51968,
+      "interval": [
+        0.32051282051282054,
+        0.37094017094017095
+      ],
+      "value": 0.347008547008547
+    },
+    {
+      "id": "focus-frequency-h16-p512",
+      "label": "focus-frequency-h16-p512",
+      "caution": null,
+      "count": 51584,
+      "interval": [
+        0.31196581196581197,
+        0.3752136752136752
+      ],
+      "value": 0.34444444444444444
+    },
+    {
+      "id": "representation-pooled-bce-h16",
+      "label": "representation-pooled-bce-h16",
+      "caution": null,
+      "count": 51584,
+      "interval": [
+        0.31196581196581197,
+        0.3752136752136752
+      ],
+      "value": 0.34444444444444444
+    },
+    {
+      "id": "regularized-distribution-h12-d0.01",
+      "label": "regularized-distribution-h12-d0.01",
+      "caution": null,
+      "count": 51328,
+      "interval": [
+        0.3162393162393162,
+        0.36923076923076925
+      ],
+      "value": 0.34273504273504274
+    },
+    {
+      "id": "regularized-distribution-h32-d0.003",
+      "label": "regularized-distribution-h32-d0.003",
+      "caution": null,
+      "count": 51328,
+      "interval": [
+        0.3187820512820513,
+        0.36666666666666664
+      ],
+      "value": 0.34273504273504274
+    },
+    {
+      "id": "expanded-frequency-ranked-soft12",
+      "label": "expanded-frequency-ranked-soft12",
+      "caution": null,
+      "count": 51325,
+      "interval": [
+        0.31877286992521364,
+        0.36666833600427345
+      ],
+      "value": 0.3427150106837607
+    },
+    {
+      "id": "expanded-sequence-hybrid-greedy",
+      "label": "expanded-sequence-hybrid-greedy",
+      "caution": null,
+      "count": 51208,
+      "interval": [
+        0.3201241987179487,
+        0.3631458667200854
+      ],
+      "value": 0.3419337606837607
+    },
+    {
+      "id": "regularized-distribution-h12-d0.03",
+      "label": "regularized-distribution-h12-d0.03",
+      "caution": null,
+      "count": 51200,
+      "interval": [
+        0.3153632478632479,
+        0.3683760683760684
+      ],
+      "value": 0.3418803418803419
+    },
+    {
+      "id": "representation-identity-bce-h16",
+      "label": "representation-identity-bce-h16",
+      "caution": null,
+      "count": 51200,
+      "interval": [
+        0.3162393162393162,
+        0.36666666666666664
+      ],
+      "value": 0.3418803418803419
+    },
+    {
+      "id": "focus-frequency-h32-p512",
+      "label": "focus-frequency-h32-p512",
+      "caution": null,
+      "count": 50944,
+      "interval": [
+        0.3153846153846154,
+        0.3641025641025641
+      ],
+      "value": 0.3401709401709402
+    },
+    {
+      "id": "regularized-distribution-h32-d0.03",
+      "label": "regularized-distribution-h32-d0.03",
+      "caution": null,
+      "count": 50944,
+      "interval": [
+        0.3128205128205128,
+        0.3658333333333332
+      ],
+      "value": 0.3401709401709402
+    },
+    {
+      "id": "focus-frequency-h32-p2048",
+      "label": "focus-frequency-h32-p2048",
+      "caution": null,
+      "count": 50816,
+      "interval": [
+        0.3111111111111111,
+        0.3658119658119658
+      ],
+      "value": 0.33931623931623933
+    },
+    {
+      "id": "refit-frequency-h8-w600",
+      "label": "refit-frequency-h8-w600",
+      "caution": null,
+      "count": 50816,
+      "interval": [
+        0.3153846153846154,
+        0.36153846153846153
+      ],
+      "value": 0.33931623931623933
+    },
+    {
+      "id": "representation-identity-listwise-h16",
+      "label": "representation-identity-listwise-h16",
+      "caution": null,
+      "count": 50816,
+      "interval": [
+        0.3128205128205128,
+        0.36495726495726494
+      ],
+      "value": 0.33931623931623933
+    },
+    {
+      "id": "representation-distribution-listwise-h8",
+      "label": "representation-distribution-listwise-h8",
+      "caution": null,
+      "count": 50688,
+      "interval": [
+        0.31196581196581197,
+        0.3641025641025641
+      ],
+      "value": 0.3384615384615385
+    },
+    {
+      "id": "expanded-frequency-ranked-soft4",
+      "label": "expanded-frequency-ranked-soft4",
+      "caution": null,
+      "count": 50676,
+      "interval": [
+        0.3177186832264957,
+        0.3586545138888889
+      ],
+      "value": 0.3383814102564103
+    },
+    {
+      "id": "refit-frequency-h16-w0",
+      "label": "refit-frequency-h16-w0",
+      "caution": null,
+      "count": 50304,
+      "interval": [
+        0.30854700854700856,
+        0.3623931623931624
+      ],
+      "value": 0.33589743589743587
+    },
+    {
+      "id": "refit-frequency-h8-w300",
+      "label": "refit-frequency-h8-w300",
+      "caution": null,
+      "count": 50304,
+      "interval": [
+        0.3111111111111111,
+        0.3606837606837607
+      ],
+      "value": 0.33589743589743587
+    },
+    {
+      "id": "set-frequency-h8-s4",
+      "label": "set-frequency-h8-s4",
+      "caution": null,
+      "count": 50252,
+      "interval": [
+        0.31405565571581195,
+        0.3558595419337607
+      ],
+      "value": 0.33555021367521365
+    },
+    {
+      "id": "expanded-sequence-hybrid-soft12",
+      "label": "expanded-sequence-hybrid-soft12",
+      "caution": null,
+      "count": 50198,
+      "interval": [
+        0.317568108974359,
+        0.3529452123397436
+      ],
+      "value": 0.33518963675213675
+    },
+    {
+      "id": "refit-frequency-h8-w0",
+      "label": "refit-frequency-h8-w0",
+      "caution": null,
+      "count": 50176,
+      "interval": [
+        0.3094017094017094,
+        0.3598290598290598
+      ],
+      "value": 0.335042735042735
+    },
+    {
+      "id": "set-frequency-h16-s4",
+      "label": "set-frequency-h16-s4",
+      "caution": null,
+      "count": 50163,
+      "interval": [
+        0.31319043803418806,
+        0.35668085603632477
+      ],
+      "value": 0.3349559294871795
+    },
+    {
+      "id": "expanded-sequence-ranked-soft12",
+      "label": "expanded-sequence-ranked-soft12",
+      "caution": null,
+      "count": 50119,
+      "interval": [
+        0.311135984241453,
+        0.35657852564102566
+      ],
+      "value": 0.3346621260683761
+    },
+    {
+      "id": "set-frequency-h8-s1",
+      "label": "set-frequency-h8-s1",
+      "caution": null,
+      "count": 50080,
+      "interval": [
+        0.316611077724359,
+        0.35047459268162395
+      ],
+      "value": 0.3344017094017094
+    },
+    {
+      "id": "focus-sequence-h8-p512",
+      "label": "focus-sequence-h8-p512",
+      "caution": null,
+      "count": 50048,
+      "interval": [
+        0.30854700854700856,
+        0.358974358974359
+      ],
+      "value": 0.33418803418803417
+    },
+    {
+      "id": "focus-sequence-h32-p512",
+      "label": "focus-sequence-h32-p512",
+      "caution": null,
+      "count": 49920,
+      "interval": [
+        0.3094017094017094,
+        0.3572649572649573
+      ],
+      "value": 0.3333333333333333
+    },
+    {
+      "id": "representation-identity-listwise-h8",
+      "label": "representation-identity-listwise-h8",
+      "caution": null,
+      "count": 49920,
+      "interval": [
+        0.30854700854700856,
+        0.3572649572649573
+      ],
+      "value": 0.3333333333333333
+    },
+    {
+      "id": "set-frequency-h8-s0.25",
+      "label": "set-frequency-h8-s0.25",
+      "caution": null,
+      "count": 49916,
+      "interval": [
+        0.31589877136752137,
+        0.3490099158653846
+      ],
+      "value": 0.3333066239316239
+    },
+    {
+      "id": "set-sequence-h16-s1",
+      "label": "set-sequence-h16-s1",
+      "caution": null,
+      "count": 49896,
+      "interval": [
+        0.31636518429487176,
+        0.34852664262820515
+      ],
+      "value": 0.3331730769230769
+    },
+    {
+      "id": "set-sequence-h16-s0.25",
+      "label": "set-sequence-h16-s0.25",
+      "caution": null,
+      "count": 49841,
+      "interval": [
+        0.3156782518696581,
+        0.34844835069444446
+      ],
+      "value": 0.33280582264957265
+    },
+    {
+      "id": "set-frequency-h16-s1",
+      "label": "set-frequency-h16-s1",
+      "caution": null,
+      "count": 49815,
+      "interval": [
+        0.3151829594017094,
+        0.34849826388888894
+      ],
+      "value": 0.33263221153846156
+    },
+    {
+      "id": "set-frequency-h16-s0.25",
+      "label": "set-frequency-h16-s0.25",
+      "caution": null,
+      "count": 49813,
+      "interval": [
+        0.31551515758547005,
+        0.34809778979700856
+      ],
+      "value": 0.33261885683760684
+    },
+    {
+      "id": "regularized-distribution-h24-d0.003",
+      "label": "regularized-distribution-h24-d0.003",
+      "caution": null,
+      "count": 49792,
+      "interval": [
+        0.3094017094017094,
+        0.3547008547008547
+      ],
+      "value": 0.33247863247863246
+    },
+    {
+      "id": "representation-pooled-listwise-h8",
+      "label": "representation-pooled-listwise-h8",
+      "caution": null,
+      "count": 49792,
+      "interval": [
+        0.30681623931623936,
+        0.3564102564102564
+      ],
+      "value": 0.33247863247863246
+    },
+    {
+      "id": "Titan Ranked",
+      "label": "Titan Ranked",
+      "caution": null,
+      "count": 49770,
+      "interval": [
+        0.31504089877136754,
+        0.34819060496794874
+      ],
+      "value": 0.3323317307692308
+    },
+    {
+      "id": "expanded-sequence-ranked-soft4",
+      "label": "expanded-sequence-ranked-soft4",
+      "caution": null,
+      "count": 49762,
+      "interval": [
+        0.3122183827457265,
+        0.35115584935897437
+      ],
+      "value": 0.332278311965812
+    },
+    {
+      "id": "expanded-sequence-ranked-greedy",
+      "label": "expanded-sequence-ranked-greedy",
+      "caution": null,
+      "count": 49749,
+      "interval": [
+        0.30639456463675213,
+        0.35728632478632477
+      ],
+      "value": 0.3321915064102564
+    },
+    {
+      "id": "set-sequence-h8-s0.25",
+      "label": "set-sequence-h8-s0.25",
+      "caution": null,
+      "count": 49737,
+      "interval": [
+        0.3149227096688034,
+        0.3477352096688034
+      ],
+      "value": 0.3321113782051282
+    },
+    {
+      "id": "frequency-tie-0.25",
+      "label": "frequency-tie-0.25",
+      "caution": null,
+      "count": 49678,
+      "interval": [
+        0.31442274305555556,
+        0.3478527310363248
+      ],
+      "value": 0.33171741452991454
+    },
+    {
+      "id": "focus-sequence-h8-p2048",
+      "label": "focus-sequence-h8-p2048",
+      "caution": null,
+      "count": 49664,
+      "interval": [
+        0.30512820512820515,
+        0.35728632478632466
+      ],
+      "value": 0.3316239316239316
+    },
+    {
+      "id": "refit-frequency-h16-w300",
+      "label": "refit-frequency-h16-w300",
+      "caution": null,
+      "count": 49664,
+      "interval": [
+        0.30427350427350425,
+        0.3572649572649573
+      ],
+      "value": 0.3316239316239316
+    },
+    {
+      "id": "refit-sequence-h16-w0",
+      "label": "refit-sequence-h16-w0",
+      "caution": null,
+      "count": 49664,
+      "interval": [
+        0.30512820512820515,
+        0.3564316239316238
+      ],
+      "value": 0.3316239316239316
+    },
+    {
+      "id": "refit-sequence-h16-w600",
+      "label": "refit-sequence-h16-w600",
+      "caution": null,
+      "count": 49664,
+      "interval": [
+        0.30683760683760686,
+        0.3564102564102564
+      ],
+      "value": 0.3316239316239316
+    },
+    {
+      "id": "sequence-tie-0.25",
+      "label": "sequence-tie-0.25",
+      "caution": null,
+      "count": 49651,
+      "interval": [
+        0.31450954861111113,
+        0.34747612847222226
+      ],
+      "value": 0.33153712606837604
+    },
+    {
+      "id": "refit-sequence-h8-w600",
+      "label": "refit-sequence-h8-w600",
+      "caution": null,
+      "count": 49536,
+      "interval": [
+        0.305982905982906,
+        0.3572649572649573
+      ],
+      "value": 0.33076923076923076
+    },
+    {
+      "id": "regularized-distribution-h12-d0.003",
+      "label": "regularized-distribution-h12-d0.003",
+      "caution": null,
+      "count": 49536,
+      "interval": [
+        0.3034188034188034,
+        0.3564316239316238
+      ],
+      "value": 0.33076923076923076
+    },
+    {
+      "id": "representation-distribution-listwise-h16",
+      "label": "representation-distribution-listwise-h16",
+      "caution": null,
+      "count": 49536,
+      "interval": [
+        0.30512820512820515,
+        0.3547008547008547
+      ],
+      "value": 0.33076923076923076
+    },
+    {
+      "id": "set-sequence-h8-s4",
+      "label": "set-sequence-h8-s4",
+      "caution": null,
+      "count": 49524,
+      "interval": [
+        0.3102360443376069,
+        0.3509219751602564
+      ],
+      "value": 0.33068910256410255
+    },
+    {
+      "id": "set-sequence-h8-s1",
+      "label": "set-sequence-h8-s1",
+      "caution": null,
+      "count": 49497,
+      "interval": [
+        0.3135481770833333,
+        0.3460882411858974
+      ],
+      "value": 0.3305088141025641
+    },
+    {
+      "id": "sequence-tie-1",
+      "label": "sequence-tie-1",
+      "caution": null,
+      "count": 49435,
+      "interval": [
+        0.31287793803418806,
+        0.34787242922008543
+      ],
+      "value": 0.33009481837606836
+    },
+    {
+      "id": "frequency-tie-1",
+      "label": "frequency-tie-1",
+      "caution": null,
+      "count": 49430,
+      "interval": [
+        0.311500233707265,
+        0.34729750934829057
+      ],
+      "value": 0.33006143162393164
+    },
+    {
+      "id": "refit-sequence-h8-w0",
+      "label": "refit-sequence-h8-w0",
+      "caution": null,
+      "count": 49408,
+      "interval": [
+        0.30512820512820515,
+        0.3547222222222221
+      ],
+      "value": 0.3299145299145299
+    },
+    {
+      "id": "representation-pooled-listwise-h16",
+      "label": "representation-pooled-listwise-h16",
+      "caution": null,
+      "count": 49408,
+      "interval": [
+        0.30512820512820515,
+        0.352991452991453
+      ],
+      "value": 0.3299145299145299
+    },
+    {
+      "id": "focus-frequency-h16-p2048",
+      "label": "focus-frequency-h16-p2048",
+      "caution": null,
+      "count": 49280,
+      "interval": [
+        0.30085470085470084,
+        0.3572649572649573
+      ],
+      "value": 0.32905982905982906
+    },
+    {
+      "id": "refit-frequency-h16-w600",
+      "label": "refit-frequency-h16-w600",
+      "caution": null,
+      "count": 49280,
+      "interval": [
+        0.30256410256410254,
+        0.352991452991453
+      ],
+      "value": 0.32905982905982906
+    },
+    {
+      "id": "frequency-tie-4",
+      "label": "frequency-tie-4",
+      "caution": null,
+      "count": 49271,
+      "interval": [
+        0.30731921073717944,
+        0.34924796340811964
+      ],
+      "value": 0.3289997329059829
+    },
+    {
+      "id": "set-sequence-h16-s4",
+      "label": "set-sequence-h16-s4",
+      "caution": null,
+      "count": 49103,
+      "interval": [
+        0.3083458533653846,
+        0.34662276308760687
+      ],
+      "value": 0.327877938034188
+    },
+    {
+      "id": "focus-sequence-h16-p512",
+      "label": "focus-sequence-h16-p512",
+      "caution": null,
+      "count": 49024,
+      "interval": [
+        0.30083333333333334,
+        0.352991452991453
+      ],
+      "value": 0.32735042735042735
+    },
+    {
+      "id": "sequence-tie-4",
+      "label": "sequence-tie-4",
+      "caution": null,
+      "count": 48945,
+      "interval": [
+        0.30614282852564106,
+        0.3489785323183761
+      ],
+      "value": 0.3268229166666667
+    },
+    {
+      "id": "regularized-distribution-h24-d0.03",
+      "label": "regularized-distribution-h24-d0.03",
+      "caution": null,
+      "count": 48896,
+      "interval": [
+        0.2999786324786325,
+        0.35384615384615387
+      ],
+      "value": 0.3264957264957265
+    },
+    {
+      "id": "regularized-distribution-h32-d0.01",
+      "label": "regularized-distribution-h32-d0.01",
+      "caution": null,
+      "count": 48896,
+      "interval": [
+        0.2982905982905983,
+        0.352991452991453
+      ],
+      "value": 0.3264957264957265
+    },
+    {
+      "id": "representation-distribution-bce-h8",
+      "label": "representation-distribution-bce-h8",
+      "caution": null,
+      "count": 48896,
+      "interval": [
+        0.30085470085470084,
+        0.35213675213675216
+      ],
+      "value": 0.3264957264957265
+    },
+    {
+      "id": "expanded-frequency-hybrid-soft4",
+      "label": "expanded-frequency-hybrid-soft4",
+      "caution": null,
+      "count": 48535,
+      "interval": [
+        0.31301298744658124,
+        0.3353081597222222
+      ],
+      "value": 0.324085202991453
+    },
+    {
+      "id": "frequency-residual-0.05",
+      "label": "frequency-residual-0.05",
+      "caution": null,
+      "count": 48523,
+      "interval": [
+        0.29751585870726494,
+        0.3488010817307692
+      ],
+      "value": 0.3240050747863248
+    },
+    {
+      "id": "focus-sequence-h16-p2048",
+      "label": "focus-sequence-h16-p2048",
+      "caution": null,
+      "count": 48512,
+      "interval": [
+        0.2982905982905983,
+        0.3487179487179487
+      ],
+      "value": 0.32393162393162395
+    },
+    {
+      "id": "representation-identity-bce-h8",
+      "label": "representation-identity-bce-h8",
+      "caution": null,
+      "count": 48512,
+      "interval": [
+        0.30085470085470084,
+        0.3452991452991453
+      ],
+      "value": 0.32393162393162395
+    },
+    {
+      "id": "expanded-sequence-hybrid-soft4",
+      "label": "expanded-sequence-hybrid-soft4",
+      "caution": null,
+      "count": 48455,
+      "interval": [
+        0.3138141025641026,
+        0.333381577190171
+      ],
+      "value": 0.32355101495726496
+    },
+    {
+      "id": "sequence-residual-0.05",
+      "label": "sequence-residual-0.05",
+      "caution": null,
+      "count": 48448,
+      "interval": [
+        0.2987179487179487,
+        0.3487179487179487
+      ],
+      "value": 0.3235042735042735
+    },
+    {
+      "id": "focus-sequence-h32-p2048",
+      "label": "focus-sequence-h32-p2048",
+      "caution": null,
+      "count": 48384,
+      "interval": [
+        0.29743589743589743,
+        0.34957264957264955
+      ],
+      "value": 0.3230769230769231
+    },
+    {
+      "id": "refit-sequence-h16-w300",
+      "label": "refit-sequence-h16-w300",
+      "caution": null,
+      "count": 48384,
+      "interval": [
+        0.2948717948717949,
+        0.34957264957264955
+      ],
+      "value": 0.3230769230769231
+    },
+    {
+      "id": "refit-sequence-h8-w300",
+      "label": "refit-sequence-h8-w300",
+      "caution": null,
+      "count": 48384,
+      "interval": [
+        0.29743589743589743,
+        0.347008547008547
+      ],
+      "value": 0.3230769230769231
+    },
+    {
+      "id": "regularized-distribution-h24-d0.01",
+      "label": "regularized-distribution-h24-d0.01",
+      "caution": null,
+      "count": 48384,
+      "interval": [
+        0.29741452991452993,
+        0.3487179487179487
+      ],
+      "value": 0.3230769230769231
+    },
+    {
+      "id": "sequence-residual-0.2",
+      "label": "sequence-residual-0.2",
+      "caution": null,
+      "count": 48294,
+      "interval": [
+        0.2950235376602564,
+        0.34930138221153845
+      ],
+      "value": 0.32247596153846153
+    },
+    {
+      "id": "Titan",
+      "label": "Titan",
+      "caution": null,
+      "count": 48171,
+      "interval": [
+        0.31752787793803416,
+        0.3256276709401709
+      ],
+      "value": 0.32165464743589745
+    },
+    {
+      "id": "Uniform sampled",
+      "label": "Uniform sampled",
+      "caution": null,
+      "count": 48122,
+      "interval": [
+        0.3189100894764957,
+        0.3236244658119658
+      ],
+      "value": 0.32132745726495726
+    },
+    {
+      "id": "sequence-h8-m25",
+      "label": "sequence-h8-m25",
+      "caution": null,
+      "count": 48117,
+      "interval": [
+        0.3188833800747863,
+        0.32357138087606835
+      ],
+      "value": 0.3212940705128205
+    },
+    {
+      "id": "sequence-h16-m75",
+      "label": "sequence-h16-m75",
+      "caution": null,
+      "count": 48114,
+      "interval": [
+        0.3188167735042735,
+        0.32360460069444447
+      ],
+      "value": 0.32127403846153846
+    },
+    {
+      "id": "sequence-h16-m25",
+      "label": "sequence-h16-m25",
+      "caution": null,
+      "count": 48104,
+      "interval": [
+        0.31871644631410256,
+        0.323564703525641
+      ],
+      "value": 0.321207264957265
+    },
+    {
+      "id": "frequency-h16-m25",
+      "label": "frequency-h16-m25",
+      "caution": null,
+      "count": 48093,
+      "interval": [
+        0.3187161124465812,
+        0.32346454326923074
+      ],
+      "value": 0.3211338141025641
+    },
+    {
+      "id": "frequency-h8-m25",
+      "label": "frequency-h8-m25",
+      "caution": null,
+      "count": 48088,
+      "interval": [
+        0.31872980101495724,
+        0.3234178018162393
+      ],
+      "value": 0.3211004273504274
+    },
+    {
+      "id": "frequency-h16-m75",
+      "label": "frequency-h16-m75",
+      "caution": null,
+      "count": 48059,
+      "interval": [
+        0.3184556957799145,
+        0.323284421741453
+      ],
+      "value": 0.3209067841880342
+    },
+    {
+      "id": "frequency-h8-m75",
+      "label": "frequency-h8-m75",
+      "caution": null,
+      "count": 48055,
+      "interval": [
+        0.31856971153846153,
+        0.3231638955662393
+      ],
+      "value": 0.3208800747863248
+    },
+    {
+      "id": "sequence-h8-m75",
+      "label": "sequence-h8-m75",
+      "caution": null,
+      "count": 48052,
+      "interval": [
+        0.3184359975961538,
+        0.32320395966880344
+      ],
+      "value": 0.32086004273504276
+    },
+    {
+      "id": "sequence-residual-0.8",
+      "label": "sequence-residual-0.8",
+      "caution": null,
+      "count": 47867,
+      "interval": [
+        0.29394130608974356,
+        0.3460879073183761
+      ],
+      "value": 0.3196247329059829
+    },
+    {
+      "id": "frequency-residual-0.2",
+      "label": "frequency-residual-0.2",
+      "caution": null,
+      "count": 47686,
+      "interval": [
+        0.2927669270833333,
+        0.3440506477029915
+      ],
+      "value": 0.3184161324786325
+    },
+    {
+      "id": "expanded-frequency-hybrid-soft12",
+      "label": "expanded-frequency-hybrid-soft12",
+      "caution": null,
+      "count": 47603,
+      "interval": [
+        0.29633897569444445,
+        0.3387421541132479
+      ],
+      "value": 0.3178619123931624
+    },
+    {
+      "id": "frequency-residual-0.8",
+      "label": "frequency-residual-0.8",
+      "caution": null,
+      "count": 47349,
+      "interval": [
+        0.29141209268162394,
+        0.34091963808760684
+      ],
+      "value": 0.3161658653846154
+    },
+    {
+      "id": "expanded-frequency-hybrid-greedy",
+      "label": "expanded-frequency-hybrid-greedy",
+      "caution": null,
+      "count": 46480,
+      "interval": [
+        0.28264372996794873,
+        0.33854867788461535
+      ],
+      "value": 0.31036324786324787
+    }
+  ]
+}
