@@ -891,7 +891,7 @@ function renderMoney(mount) {
   const ledger = !state.subsError && state.subs?.ledger;
   mount.appendChild(card({ title: 'Apple subscription ledger', kicker: 'Verified notifications · one record per original transaction',
     note: ledger?.note || 'Apple subscription accounting is unavailable.',
-    foot: ledger ? `As of ${fmtStamp(ledger.asOf)}. Notifications observed since ${ledger.historyFrom || ledger.startedAt}. Grace periods are shown separately from paid active subscriptions. Annual or dormant subscriptions outside this history may be missing.` : 'Device counts below are not a substitute.' },
+    foot: ledger ? `As of ${fmtStamp(ledger.asOf)}. Notifications observed since ${ledger.historyFrom || ledger.startedAt}. Grace periods are shown separately from active entitlements. Annual or dormant subscriptions outside this history may be missing.` : 'Device counts below are not a substitute.' },
     ledger ? tiles(tile('Observed active', fmt(ledger.active)), tile('Grace', fmt(ledger.grace)), tile('Billing retry', fmt(ledger.billingRetry)),
       tile('Auto-renew off', fmt(ledger.autoRenewOff)), tile('Observed chains', fmt(ledger.observed)), tile('Expired chains', fmt(ledger.expired)), tile('Refunded / revoked chains', fmt(ledger.refunded))) : emptyState('Awaiting verified Apple ledger data.', 'Unavailable')));
 
@@ -929,7 +929,7 @@ function renderMoney(mount) {
   const jpOrder = ['unknown', 'lt100M', '100-300M', '300-500M', '500M-1B', '1Bplus'], jpLabel = { unknown: 'Unknown', lt100M: '< $100M', '100-300M': '$100–300M', '300-500M': '$300–500M', '500M-1B': '$500M–1B', '1Bplus': '$1B+' };
   const dsiOrder = ['0', '1-2', '3-5', '6plus'], dsiLabel = { '0': 'Same day', '1-2': '1–2 draws', '3-5': '3–5 draws', '6plus': '6+ draws' };
   const ordered = (obj, order) => [...order.filter((k) => obj[k]), ...Object.keys(obj).filter((k) => !order.includes(k))];
-  mount.appendChild(card({ title: 'Paywall context', kicker: 'What was true when the paywall showed', cls: 'half', foot: 'Jackpot band and draws-since-install ride on every paywall view since 5.1; price is the localized product price the sheet displayed.' },
+  mount.appendChild(card({ title: 'Paywall context', kicker: 'What was true when the paywall showed', cls: 'half', foot: 'Jackpot band and draws-since-install ride on every paywall view since 5.1; price is the localized product price the sheet displayed. Older 5.1 clients may record unresolved eligibility as not eligible; corrected clients report unknown while loading.' },
     shareBar('By jackpot band', ordered(jp, jpOrder).map((k, i) => ({ label: jpLabel[k] || k, value: jp[k], color: k === 'unknown' ? OTHER : ORDINAL(6)[Math.max(jpOrder.indexOf(k), 0)] })), { unit: 'views' }),
     shareBar('By draws since install', ordered(dsi, dsiOrder).map((k) => ({ label: dsiLabel[k] || k, value: dsi[k], color: ORDINAL(4)[Math.max(dsiOrder.indexOf(k), 0)] })), { unit: 'views' }),
     shareBar('Intro offer eligible', ['yes', 'no', 'unknown'].filter((k) => intro[k]).map((k, i) => ({ label: k === 'yes' ? 'Eligible' : k === 'no' ? 'Not eligible' : 'Not resolved', value: intro[k], color: CAT[i] })), { unit: 'views' }),
