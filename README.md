@@ -41,3 +41,17 @@ git add -A && git commit -m "..." && git push origin main
 
 Bump the `?v=` query on the CSS/JS tags in `index.html` when either file changes so
 Pages' 10-minute asset cache does not serve a stale pair.
+
+## Measurement correction (September 17, 2026)
+
+`evidence.json` is a compact, reproducible snapshot of all 107 policies in the
+app's `ModelEvidence.json` (version 9.0.0); the source SHA-256 is embedded.
+The headline is Powerball-only retrospective development evidence. Live arms
+require worker `v3.evidenceScope = pair_tagged_5_1_plus` and never issue a verdict
+at a pair-count threshold. Intervals use drawings as the sampling unit.
+
+`/subscription-events` now includes `snapshot` / `history` from Apple's daily
+SUBSCRIPTION reports and a separate partial `ledger` from verified notifications.
+Device counts must not be labeled subscribers. Report dates and partial coverage
+must stay visible. New notification counters have `_unique` names so older
+rescheduling attempts cannot contaminate them. Schedules are not deliveries.
