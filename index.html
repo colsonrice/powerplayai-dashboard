@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,900&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="dashboard.css?v=6">
+<link rel="stylesheet" href="dashboard.css?v=8">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -49,7 +49,7 @@
           <button type="button" data-game="euroMillions" class="em">EuroMillions</button>
         </div>
       </div>
-      <span class="scope">Window scopes every time series · Game scopes the scoreboard and proof</span>
+      <span class="scope">Window filters live comparisons by draw date · Legacy totals and model tests keep their stated periods</span>
     </div>
   </div>
 </header>
@@ -64,9 +64,9 @@
       <div class="chapter-head">
         <div>
           <span class="eyebrow">Scoreboard</span>
-          <h2>Historical evidence, <em>checked</em> against new draws.</h2>
+          <h2>Model decisions, <em>with the results.</em></h2>
         </div>
-        <p>Anonymous results reported by PowerPlayAI users after each drawing. Hits are lines that matched at least one main number. For entertainment; past results don't guarantee future outcomes.</p>
+        <p>A historical model test alongside anonymous community results. A hit means at least one main number matched. Prize qualification is shown separately; past results don't guarantee future outcomes.</p>
       </div>
       <div class="grid" id="mount-scoreboard"></div>
     </section>
@@ -74,10 +74,15 @@
     <section class="chapter" id="proof">
       <div class="chapter-head">
         <div>
-          <span class="eyebrow">Proof</span>
-          <h2>Against chance, and against a <em>paired random line.</em></h2>
+          <span class="eyebrow">Model results</span>
+          <h2>One game. Same draws. <em>Matched comparisons.</em></h2>
         </div>
-        <p>The Powerball backtest is a development result, not proof of future advantage. Live pair-tagged forecasts are compared with random lines on the same drawing. Each drawing is one unit of evidence.</p>
+        <p>Live reports, lifetime totals and historical model tests answer different questions. Choose a view below. A main-number hit does not necessarily win a prize.</p>
+      </div>
+      <div class="seg evidence-tabs" id="segEvidence" role="group" aria-label="Evidence source">
+        <button type="button" data-evidence="live" class="active" aria-pressed="true">Live comparison</button>
+        <button type="button" data-evidence="legacy" aria-pressed="false">Legacy totals</button>
+        <button type="button" data-evidence="test" aria-pressed="false">Neuron vs Titan test</button>
       </div>
       <div class="grid" id="mount-proof"></div>
     </section>
@@ -135,6 +140,7 @@
   <p>© PowerPlayAI · <a href="../powerplayai.html">About</a> · <a href="../powerplayai-picks/">House picks</a> · <a href="../powerplayai-proof.html">Proof &amp; methodology</a> · <a href="../powerplayai-privacy.html">Privacy</a></p>
 </footer>
 
-<script src="dashboard.js?v=6"></script>
+<script src="stats-math.js?v=8"></script>
+<script src="dashboard.js?v=8"></script>
 </body>
 </html>

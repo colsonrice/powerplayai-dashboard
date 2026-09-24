@@ -8,6 +8,8 @@ Static files, published by GitHub Pages from `main` (about a minute after a push
 | `index.html` | Page shell: top bar, filter row, the six chapter mounts |
 | `dashboard.css` | Look shared with the picks page (Fraunces / Hanken Grotesk / IBM Plex Mono) |
 | `dashboard.js` | Fetches the worker, renders every chapter; Chart.js 4 from jsdelivr |
+| `stats-math.js` | Pure game/model/date filters and paired drawing/line summaries |
+| `neuron-titan.json` | Audited 1,171-drawing historical model decision, with both hit and prize rates |
 | `fixture-v3.json` | A dense `/stats` snapshot for local checks (not published) |
 
 ## Data
@@ -55,3 +57,26 @@ SUBSCRIPTION reports and a separate partial `ledger` from verified notifications
 Device counts must not be labeled subscribers. Report dates and partial coverage
 must stay visible. New notification counters have `_unique` names so older
 rescheduling attempts cannot contaminate them. Schedules are not deliveries.
+
+## Model comparison upgrade (September 24, 2026)
+
+The headline now shows the separate Neuron–Titan native historical replay, not the
+107-policy development search. Neuron leads on white-any; Titan leads on prize
+qualification. Both are visible. Powerball single-line scope and historical
+limitations remain explicit. Export source: app repo
+`backtest/neuron_titan_compare/export_summary.py`, backed by the audited record in
+`docs/research/neuron-titan-decision-2026-09-24/`.
+
+The live tab filters `v3.pairedDraws` by game, model and drawing date. It defaults
+to equal drawing weights, offers line weighting, and shows exact matched
+denominators and each model's own paired random. No-data states never render as
+zero hits. Enhanced reports remain labeled mixed/unknown engine versions because
+the historical event mapping does not establish which artifact generated them.
+Legacy all-time observations have their own tab. The historical test keeps its
+fixed period regardless of live filters.
+
+App repo checks: `node scripts/verify_dashboard_comparison.mjs --fixture`,
+`node scripts/verify_worker_v3.mjs`, and `node scripts/verify_measurement_fixes.mjs`.
+The first creates ignored `fixture-comparison.json` for browser QA. Do not publish
+synthetic fixtures. The worker addition exposes aggregate matched counts only;
+it adds no database query, migration, or ingestion change.
