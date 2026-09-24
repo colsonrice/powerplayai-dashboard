@@ -80,3 +80,27 @@ App repo checks: `node scripts/verify_dashboard_comparison.mjs --fixture`,
 The first creates ignored `fixture-comparison.json` for browser QA. Do not publish
 synthetic fixtures. The worker addition exposes aggregate matched counts only;
 it adds no database query, migration, or ingestion change.
+
+## Random benchmarks and replacement review
+
+The replay includes a separately audited uniform random supplement: 74,944 lines
+on the same 1,171 drawings. Its seed schedule was fixed before generation, after
+the original Neuron–Titan result was known. Original model tickets, scores and
+registrations remain unchanged. `random_control` in `neuron-titan.json` contains
+the complete period/year summaries, exact expectations, and audit hashes.
+
+Headline rates show both observed random replay and exact uniform expectation.
+Main hits and prize qualification receive separate review flags. Yearly tables
+retain every year and let users choose either outcome. A flag requires the
+selected model to fall below the relevant random benchmark while the alternative
+meets or exceeds it and has a higher score than the selected model. Both-below,
+at-random and missing-data states are distinct. The two benchmark flags may
+disagree and remain visible separately.
+
+Live replacement review intersects each alternative's drawing dates with the
+selected model's dates, within the chosen game/window. It gives each shared
+drawing equal weight in both models even if the main display uses line weights.
+It displays both models' own paired controls, exact random expectation, counts,
+date ranges and separate flags. A candidate's unshared dates never contribute.
+These are descriptive review cues; reporting users differ and the Enhanced
+bucket still mixes generating versions. No routing or model switch occurs.

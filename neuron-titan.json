@@ -276,6 +276,208 @@
     "result_sha256": "0f641591c7237a43fece56932b89794c7e1160e2b410b1d7d14e5ea7fa430374",
     "audited_at": "2026-09-24T18:32:17.679517+00:00"
   },
+  "random_control": {
+    "expected": {
+      "white_any": 0.3215728806827024,
+      "white_mean": 0.36231884057971014,
+      "red": 0.038461538461538464,
+      "prize": 0.040213840499251925
+    },
+    "primary": {
+      "draws": 1171,
+      "lines": 74944,
+      "rates": {
+        "white_any": 0.32632365499573013,
+        "white_mean": 0.36762115713065757,
+        "red": 0.03900245516652434,
+        "prize": 0.041030636208368915
+      },
+      "counts": {
+        "white_any": 24456,
+        "white_mean": 27551,
+        "red": 2923,
+        "prize": 3075
+      }
+    },
+    "recent_2024_onward": {
+      "draws": 422,
+      "lines": 27008,
+      "rates": {
+        "white_any": 0.32793986966824645,
+        "white_mean": 0.3688166469194313,
+        "red": 0.03880331753554502,
+        "prize": 0.040395438388625596
+      },
+      "counts": {
+        "white_any": 8857,
+        "white_mean": 9961,
+        "red": 1048,
+        "prize": 1091
+      }
+    },
+    "by_year": {
+      "2018": {
+        "draws": 104,
+        "lines": 6656,
+        "rates": {
+          "white_any": 0.31850961538461536,
+          "white_mean": 0.36072716346153844,
+          "red": 0.03981370192307692,
+          "prize": 0.04176682692307692
+        },
+        "counts": {
+          "white_any": 2120,
+          "white_mean": 2401,
+          "red": 265,
+          "prize": 278
+        }
+      },
+      "2019": {
+        "draws": 104,
+        "lines": 6656,
+        "rates": {
+          "white_any": 0.3231670673076923,
+          "white_mean": 0.36778846153846156,
+          "red": 0.039212740384615384,
+          "prize": 0.04176682692307692
+        },
+        "counts": {
+          "white_any": 2151,
+          "white_mean": 2448,
+          "red": 261,
+          "prize": 278
+        }
+      },
+      "2020": {
+        "draws": 105,
+        "lines": 6720,
+        "rates": {
+          "white_any": 0.3361607142857143,
+          "white_mean": 0.3763392857142857,
+          "red": 0.03824404761904762,
+          "prize": 0.040773809523809525
+        },
+        "counts": {
+          "white_any": 2259,
+          "white_mean": 2529,
+          "red": 257,
+          "prize": 274
+        }
+      },
+      "2021": {
+        "draws": 123,
+        "lines": 7872,
+        "rates": {
+          "white_any": 0.3252032520325203,
+          "white_mean": 0.36115345528455284,
+          "red": 0.0389989837398374,
+          "prize": 0.04065040650406504
+        },
+        "counts": {
+          "white_any": 2560,
+          "white_mean": 2843,
+          "red": 307,
+          "prize": 320
+        }
+      },
+      "2022": {
+        "draws": 157,
+        "lines": 10048,
+        "rates": {
+          "white_any": 0.3183718152866242,
+          "white_mean": 0.35977308917197454,
+          "red": 0.03771894904458599,
+          "prize": 0.040306528662420384
+        },
+        "counts": {
+          "white_any": 3199,
+          "white_mean": 3615,
+          "red": 379,
+          "prize": 405
+        }
+      },
+      "2023": {
+        "draws": 156,
+        "lines": 9984,
+        "rates": {
+          "white_any": 0.33153044871794873,
+          "white_mean": 0.3760016025641026,
+          "red": 0.040665064102564104,
+          "prize": 0.04296875
+        },
+        "counts": {
+          "white_any": 3310,
+          "white_mean": 3754,
+          "red": 406,
+          "prize": 429
+        }
+      },
+      "2024": {
+        "draws": 157,
+        "lines": 10048,
+        "rates": {
+          "white_any": 0.3195660828025478,
+          "white_mean": 0.35798168789808915,
+          "red": 0.03990843949044586,
+          "prize": 0.041401273885350316
+        },
+        "counts": {
+          "white_any": 3211,
+          "white_mean": 3597,
+          "red": 401,
+          "prize": 416
+        }
+      },
+      "2025": {
+        "draws": 157,
+        "lines": 10048,
+        "rates": {
+          "white_any": 0.3356886942675159,
+          "white_mean": 0.3781847133757962,
+          "red": 0.03592754777070064,
+          "prize": 0.037619426751592355
+        },
+        "counts": {
+          "white_any": 3373,
+          "white_mean": 3800,
+          "red": 361,
+          "prize": 378
+        }
+      },
+      "2026": {
+        "draws": 108,
+        "lines": 6912,
+        "rates": {
+          "white_any": 0.32884837962962965,
+          "white_mean": 0.37094907407407407,
+          "red": 0.04137731481481482,
+          "prize": 0.04296875
+        },
+        "counts": {
+          "white_any": 2273,
+          "white_mean": 2564,
+          "red": 286,
+          "prize": 297
+        }
+      }
+    },
+    "audit": {
+      "status": "passed",
+      "draws": 1171,
+      "scored_tickets": 74944,
+      "seed_reproductions": 74944,
+      "exact_baseline_pmf_verified": true,
+      "result_sha256": "6402cb4534d684992538e7f954dcadf2803d323e2890034c6faa7de6b348551b",
+      "audited_at": "2026-09-24T18:50:11.623642+00:00"
+    },
+    "method": "Uniform five whites without replacement and independent uniform red, 64 fixed streams on every original drawing. Added after the two-model result; original model tickets and scores unchanged.",
+    "review_rule": "Display separate review flags against exact uniform expectation and the finite random replay. For each benchmark, flag only when the selected model is below it and an alternative meets or exceeds it on the same outcome and drawings. This is descriptive review, with no automatic model switch.",
+    "source_sha256": {
+      "registration.json": "d92e1df728e0a033e34180fc7a835a8b85e34f276683bda9d4eac05653eac972",
+      "result.json": "6402cb4534d684992538e7f954dcadf2803d323e2890034c6faa7de6b348551b",
+      "audit.json": "7f3e519cb4bc931f78f133fd4da46860b7aae40787aa1948e4926a3f0c96c0a8"
+    }
+  },
   "source_sha256": {
     "registration.json": "417ef5c9985c99857b7fe9fe5ec6d378d6b252d1ae25b857daadc4560b75e095",
     "result.json": "0f641591c7237a43fece56932b89794c7e1160e2b410b1d7d14e5ea7fa430374",

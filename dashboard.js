@@ -72,6 +72,7 @@ const state = {
   evidenceView: 'live',
   compareModel: 'enhanced',
   weighting: 'draw',
+  comparisonMetric: 'white_any',
   window: Number(params.get('window')) || 30,
   game: LOTTERIES.includes(params.get('game')) ? params.get('game') : 'all',
   // 'results' = the public proof page (Scoreboard + Proof); 'all' adds the loop, money, ops and explorer chapters.
@@ -511,6 +512,16 @@ function renderScoreboard(mount) {
 }
 
 // ============================================================================
+function reviewLabel(status, alternative='alternative') {
+  return ({review_alternative:`Review ${alternative}`,both_below:'Both below random',below_random:'Below random; alternative unavailable',
+    alternative_lower:'Alternative does not beat selected',above_random:'Selected above random',at_random:'Selected matches random',no_data:'No shared data'})[status] || 'Unavailable';
+}
+function reviewBadge(status, alternative) {
+  return h('span',{class:'review-badge '+(status==='review_alternative'?'review':status==='both_below'||status==='below_random'?'below':'neutral')},reviewLabel(status,alternative));
+}
+function rateAgainstRandom(rate, baseline) {
+  return h('span',null,pct(rate,2),Number.isFinite(baseline)?h('small',{class:'benchmark-delta'},`${signed((rate-baseline)*100,2,' pp')} vs replay`):null);
+}
 function renderModelDecision(mount, detailed) {
   const r = state.comparison;
   if (!r?.primary?.neuron || !r?.primary?.titan) {
@@ -518,34 +529,77 @@ function renderModelDecision(mount, detailed) {
       emptyState('The comparison result could not be loaded. Live observations are available below.')));
     return;
   }
-  const winner = r.winner === 'neuron_nf2' ? 'Neuron' : 'Titan';
   const primary = r.primary;
-  const rows = [{name:'Neuron · Neural Focus 2',...primary.neuron}, {name:'Titan · weighted',...primary.titan}];
-  const el = card({title:`${winner} leads on main-number hits`,kicker:`Powerball replay · ${fmt(primary.draws)} historical drawings`,cls:'model-decision',
+  const random=r.random_control;
+  if (!random?.primary?.rates || !random?.expected) {
+    mount.appendChild(card({title:'Random comparison unavailable'},emptyState('Awaiting the audited random baseline. No replacement recommendation is inferred.'))); return;
+  }
+  const sampled=random.primary.rates, expected=random.expected;
+  const rows = [{name:'Neuron · Neural Focus 2',model:true,...primary.neuron}, {name:'Titan · weighted',model:true,...primary.titan},
+    {name:'Uniform random · replay',...sampled},{name:'Uniform random · expectation',...expected}];
+  const el = card({title:'Neuron, Titan and random',kicker:`Powerball replay · ${fmt(primary.draws)} historical drawings`,cls:'model-decision',
     note:`${r.period[0]} – ${r.period[1]} · ${fmt(r.streams)} fixed generation streams per drawing · one ticket per model per stream.`,
-    foot:'Choice is based on the higher observed main-number hit rate. Previously examined history; this result does not establish better future odds. Applies to Powerball single lines only.'},
+    foot:'Random replay = observed uniform tickets on the same drawings. Random expectation = exact mathematical chance. Review flags use the same outcome and period; they do not switch the app automatically. Historical results do not establish future odds.'},
     table([
       {key:'name',label:'Model',render:x=>x.name},
-      {key:'hit',label:'Hit ≥1 main',num:true,render:x=>pct(x.white_any,2)},
-      {key:'prize',label:'Prize-qualifying',num:true,render:x=>pct(x.prize,2)},
+      {key:'hit',label:'Hit ≥1 main',num:true,render:x=>rateAgainstRandom(x.white_any,x.model?sampled.white_any:null)},
+      {key:'prize',label:'Prize-qualifying',num:true,render:x=>rateAgainstRandom(x.prize,x.model?sampled.prize:null)},
       ...(detailed ? [{key:'red',label:'Powerball hit',num:true,render:x=>pct(x.red,2)}] : []),
     ],rows),
-    h('div',{class:'decision-delta'},`${signed(primary.difference.white_any*100,2)} percentage points · Neuron minus Titan`),
-    h('p',{class:'card-foot'},'Keep Neuron for the main-number hit objective. Titan led on prize-qualifying lines; matching one main number alone is not a prize.'));
+    h('div',{class:'replacement-watch'},h('b',null,'Replacement review · current model: Neuron'),
+      ['white_any','prize'].map(metric=>h('div',{class:'review-row'},
+        h('strong',null,metric==='white_any'?'Main-number hits':'Prize qualification'),
+        h('span',null,'vs random replay ',reviewBadge(window.PPAIStats.reviewStatus(primary.neuron[metric],primary.titan[metric],sampled[metric]),'Titan')),
+        h('span',null,'vs random expectation ',reviewBadge(window.PPAIStats.reviewStatus(primary.neuron[metric],primary.titan[metric],expected[metric]),'Titan'))))),
+    h('p',{class:'card-foot'},'Review Titan when Neuron falls below random and Titan meets or beats random on that same outcome. The current main-number objective keeps Neuron; prize qualification flags Titan for review. A single main-number match alone is not a prize.'));
   if (detailed) {
-    el.appendChild(h('p',{class:'card-foot'},'Unchanged native inference sources. Neuron uses annual fits trained on earlier drawings only. Titan uses its production weights with a reproducible weighted sampler. Same draw dates, history cutoffs and seed schedule; every loss is retained.'));
+    el.appendChild(h('p',{class:'card-foot'},'Neuron uses annual fits trained on earlier drawings only; Titan uses production weights with a reproducible weighted sampler. The random supplement was fixed and audited after the original two-model result. Original model tickets and scores are unchanged; this history has already been used in development.'));
     el.appendChild(h('p',{class:'card-foot'},h('a',{href:'./neuron-titan.json'},'Download the complete comparison summary')));
   }
   mount.appendChild(el);
   if (detailed) {
-    const years=Object.entries(r.by_year||{}).map(([year,v])=>({year,...v}));
-    mount.appendChild(card({title:'Every year, both models',kicker:'Same primary metric · no years removed'},table([
+    const metric=state.comparisonMetric;
+    const years=Object.entries(r.by_year||{}).map(([year,v])=>({year,...v,random:random.by_year?.[year]?.rates}));
+    const periodControl=h('label',{class:'comparison-controls'},'Compare yearly outcome ',h('select',{'aria-label':'Historical comparison outcome',onChange:e=>{state.comparisonMetric=e.target.value;renderAll();}},
+      h('option',{value:'white_any',selected:metric==='white_any'},'At least one main number'),
+      h('option',{value:'prize',selected:metric==='prize'},'Prize qualification')));
+    mount.appendChild(card({title:'Every year, against random',kicker:'Same drawings in all three arms · no years removed',
+      note:`Exact random expectation: ${pct(expected[metric],2)}. Each row checks whether Neuron fell below random while Titan did not.`,
+      foot:'A review flag is descriptive. One good year, repeated ticket streams, and a model selected using past data do not prove future improvement.'},periodControl,table([
       {key:'year',label:'Year',render:x=>x.year},{key:'draws',label:'Drawings',num:true,render:x=>fmt(x.draws)},
-      {key:'neuron',label:'Neuron hit rate',num:true,render:x=>pct(x.neuron.white_any,2)},
-      {key:'titan',label:'Titan hit rate',num:true,render:x=>pct(x.titan.white_any,2)},
-      {key:'difference',label:'Difference',num:true,render:x=>signed(x.difference.white_any*100,2,' pp')},
+      {key:'neuron',label:'Neuron',num:true,render:x=>pct(x.neuron[metric],2)},
+      {key:'titan',label:'Titan',num:true,render:x=>pct(x.titan[metric],2)},
+      {key:'random',label:'Random replay',num:true,render:x=>pct(x.random?.[metric],2)},
+      {key:'review',label:'Replacement review',render:x=>h('div',{class:'review-cell'},
+        h('span',null,'Replay: ',reviewBadge(window.PPAIStats.reviewStatus(x.neuron[metric],x.titan[metric],x.random?.[metric]),'Titan')),
+        h('span',null,'Expectation: ',reviewBadge(window.PPAIStats.reviewStatus(x.neuron[metric],x.titan[metric],expected[metric]),'Titan')))},
     ],years)));
   }
+}
+
+function renderReplacementReview(game) {
+  const rows=v3().pairedDraws;
+  const candidates=MODEL_ORDER.filter(m=>m!==state.compareModel && rows.some(r=>r.lottery===game && r.model===m));
+  const comparisons=candidates.map(candidate=>window.PPAIStats.commonComparison(rows,{game,selected:state.compareModel,candidate,
+    from:windowStart(),through:today(),baseline:CHANCE_HIT[game]}));
+  const flagged=comparisons.filter(c=>c.status==='review_alternative'||c.pairedStatus==='review_alternative');
+  const details=h('details',{class:'replacement-watch',open:flagged.length>0},
+    h('summary',null,flagged.length?`Replacement review: ${flagged.map(c=>modelName(c.candidate)).join(', ')}`:'Replacement review · compare alternatives on shared drawings'),
+    h('p',{class:'card-note'},`Selected: ${modelName(state.compareModel)}. Main-number hits only. Equal weight per shared drawing for both models, regardless of the line-weighting control above. Exact random expectation: ${pct(CHANCE_HIT[game],2)}.`));
+  if (!comparisons.some(c=>c.draws)) {
+    details.appendChild(emptyState('No alternative has results on the selected model’s drawing dates in this window.')); return details;
+  }
+  details.appendChild(table([
+    {key:'candidate',label:'Alternative',render:c=>modelName(c.candidate)},
+    {key:'draws',label:'Shared draws',num:true,render:c=>h('span',null,fmt(c.draws),c.draws?h('small',{class:'benchmark-delta'},`${c.current.first} – ${c.current.last}`):null)},
+    {key:'selected',label:'Selected / its random',num:true,render:c=>c.draws?h('span',null,`${pct(c.current.modelRate)} / ${pct(c.current.controlRate)}`,h('small',{class:'benchmark-delta'},`${fmt(c.current.pairs)} pairs`)):'—'},
+    {key:'alternative',label:'Alternative / its random',num:true,render:c=>c.draws?h('span',null,`${pct(c.alternative.modelRate)} / ${pct(c.alternative.controlRate)}`,h('small',{class:'benchmark-delta'},`${fmt(c.alternative.pairs)} pairs`)):'—'},
+    {key:'review',label:'Replacement review',render:c=>h('div',{class:'review-cell'},
+      h('span',null,'Paired random: ',reviewBadge(c.pairedStatus,modelName(c.candidate))),
+      h('span',null,'Expectation: ',reviewBadge(c.status,modelName(c.candidate))))},
+  ],comparisons));
+  details.appendChild(h('p',{class:'card-foot'},'Flag = selected model below its random benchmark, alternative at or above its benchmark and above the selected model, on shared dates. Random pairs differ by model. Community reports are incomplete and come from different users; a flag prompts a controlled comparison, not an automatic switch. Mixed Enhanced reports cannot distinguish Titan from Neuron.'));
+  return details;
 }
 
 function renderLiveComparison(mount) {
@@ -587,6 +641,7 @@ function renderLiveComparison(mount) {
     if (unpaired>0) el.appendChild(h('p',{class:'card-foot'},`${fmt(unpaired)} additional model rows in the available draw ledger are excluded because they lack a complete valid pair.`));
     el.appendChild(h('details',{class:'metric-details'},h('summary',null,'Other metric: average main-number matches'),
       h('p',null,`${signed(s.mainDifference,3)} main matches per line versus the paired control. This is a match-count difference, not a hit-rate percentage-point difference.`)));
+    el.appendChild(renderReplacementReview(game));
     mount.appendChild(el);
   }
 }

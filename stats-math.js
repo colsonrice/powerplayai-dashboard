@@ -26,7 +26,30 @@
       modelHits:draws.reduce((s,d)=>s+d.modelHits,0),controlHits:draws.reduce((s,d)=>s+d.controlHits,0),
       first:draws[0]?.draw || null,last:draws.at(-1)?.draw || null,series:draws};
   }
-  const api={select,summarize};
+  // Exact uniform expectation is the review threshold; finite random samples
+  // remain visible separately and are not relabeled as mathematical chance.
+  function reviewStatus(current, alternative, baseline, alternativeBaseline=baseline) {
+    if (!Number.isFinite(current) || !Number.isFinite(baseline)) return 'no_data';
+    if (current < baseline) {
+      if (!Number.isFinite(alternative) || !Number.isFinite(alternativeBaseline)) return 'below_random';
+      if (alternative < alternativeBaseline) return 'both_below';
+      return alternative > current ? 'review_alternative' : 'alternative_lower';
+    }
+    return current === baseline ? 'at_random' : 'above_random';
+  }
+  function commonComparison(rows, {game,selected,candidate,from,through,baseline}) {
+    const currentRows=select(rows,{game,model:selected,from,through});
+    const candidateRows=select(rows,{game,model:candidate,from,through});
+    const candidateDates=new Set(candidateRows.map(r=>r.draw));
+    const common=new Set(currentRows.map(r=>r.draw).filter(d=>candidateDates.has(d)));
+    // Both arms receive identical drawing weights, even when their line counts differ.
+    const current=summarize(currentRows.filter(r=>common.has(r.draw)),'draw');
+    const alternative=summarize(candidateRows.filter(r=>common.has(r.draw)),'draw');
+    return {candidate,draws:common.size,current,alternative,
+      status:reviewStatus(current.modelRate,alternative.modelRate,baseline),
+      pairedStatus:reviewStatus(current.modelRate,alternative.modelRate,current.controlRate,alternative.controlRate)};
+  }
+  const api={select,summarize,reviewStatus,commonComparison};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.PPAIStats=api;
 })(globalThis);
