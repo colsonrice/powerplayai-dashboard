@@ -49,7 +49,17 @@
       status:reviewStatus(current.modelRate,alternative.modelRate,baseline),
       pairedStatus:reviewStatus(current.modelRate,alternative.modelRate,current.controlRate,alternative.controlRate)};
   }
-  const api={select,summarize,reviewStatus,commonComparison};
+  function modelResults(rows, {game,from,through,models=[]}) {
+    const selected=(Array.isArray(rows)?rows:[]).filter(r=>valid(r) && r.lottery===game && r.draw>=from && r.draw<=through);
+    const names=[...new Set([...models,...selected.map(r=>r.model)])];
+    return names.flatMap(model=>{
+      const modelRows=selected.filter(r=>r.model===model);
+      const engines=[...new Set(modelRows.map(r=>r.engineAttribution || 'unknown_or_mixed'))];
+      if (!engines.length) engines.push('unknown_or_mixed');
+      return engines.map(engine=>({model,engine,...summarize(modelRows.filter(r=>(r.engineAttribution || 'unknown_or_mixed')===engine))}));
+    });
+  }
+  const api={select,summarize,reviewStatus,commonComparison,modelResults};
   if (typeof module !== 'undefined' && module.exports) module.exports=api;
   else root.PPAIStats=api;
 })(globalThis);

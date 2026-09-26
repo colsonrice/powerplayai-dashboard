@@ -104,3 +104,22 @@ It displays both models' own paired controls, exact random expectation, counts,
 date ranges and separate flags. A candidate's unshared dates never contribute.
 These are descriptive review cues; reporting users differ and the Enhanced
 bucket still mixes generating versions. No routing or model switch occurs.
+
+## Draw results layout (September 26, 2026)
+
+Results opens with overall paired model history (all available dates, equal weight
+per draw), followed by newest-first draw tables showing all models together.
+The window filters draw tables only; game selection filters both sections.
+Green rows beat their paired random hit rate; red rows fall below or tie it.
+Missing pairs remain neutral. A hit is at least one main-number match.
+Engine attribution is grouped separately when supplied; existing worker data is
+unknown/mixed for Enhanced and cannot distinguish Titan from Neuron. Other models
+are labeled single engine. Legacy totals and the
+historical replay remain accessible in their separate tabs.
+
+The overview now leads with the conditional Enhanced / Neuron recommendation for
+Powerball main-number matching, replay hit/prize rates, and per-game live coverage.
+It withholds the recommendation when replay data is missing or no longer supports
+it. Other games do not inherit the Powerball recommendation. Overall tables show
+both drawing-weighted verdicts and line totals; reversals are called out explicitly.
+Fixture previews are labeled Snapshot in the freshness badge.

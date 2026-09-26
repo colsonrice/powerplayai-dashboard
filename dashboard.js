@@ -396,7 +396,7 @@ function tiles(...items) { return h('div', { class: 'tiles' }, ...items); }
 function table(columns, rows, opts = {}) {
   // columns: [{key,label,num,render}] rows: objects
   const thead = h('thead', null, h('tr', null, ...columns.map((c) => h('th', { class: c.num ? 'num' : '' }, c.label))));
-  const tbody = h('tbody', null, ...rows.map((r) => h('tr', null, ...columns.map((c) => {
+  const tbody = h('tbody', null, ...rows.map((r) => h('tr', {class: opts.rowClass ? opts.rowClass(r) : null}, ...columns.map((c) => {
     const v = c.render ? c.render(r) : r[c.key];
     return h('td', { class: (c.num ? 'num ' : '') + (c.cls ? c.cls(r) || '' : '') }, v == null ? '—' : v);
   }))));
@@ -490,7 +490,9 @@ function renderScoreboard(mount) {
   const dev = v3() && isObj(v3().devices) ? v3().devices : null;
   const active = dev && isObj(dev.active) ? dev.active : {};
 
-  renderModelDecision(mount, false);
+  renderStateSummary(mount);
+  renderModelHistory(mount);
+  if (state.view !== 'all') return;
 
   // KPI tiles
   const last = snaps[snaps.length - 1], wk = snaps.length > 7 ? snaps[snaps.length - 8] : snaps[0], mo = snaps.length > 30 ? snaps[snaps.length - 31] : snaps[0];
@@ -602,47 +604,114 @@ function renderReplacementReview(game) {
   return details;
 }
 
-function renderLiveComparison(mount) {
-  const controls=h('div',{class:'card comparison-controls'},
-    h('label',null,'Model ',h('select',{'aria-label':'Comparison model',onChange:e=>{state.compareModel=e.target.value;renderAll();}},
-      ['enhanced','base','randomBalanced','quantum'].map(m=>h('option',{value:m,selected:state.compareModel===m},modelName(m))))),
-    h('label',null,'Weighting ',h('select',{'aria-label':'Comparison weighting',onChange:e=>{state.weighting=e.target.value;renderAll();}},
-      h('option',{value:'draw',selected:state.weighting==='draw'},'Each drawing equally'),
-      h('option',{value:'line',selected:state.weighting==='line'},'Each reported line equally'))),
-    h('span',{class:'scope'},`${windowStart()} – ${today()} · draw dates`));
-  mount.appendChild(controls);
-  if (!Array.isArray(v3()?.pairedDraws) || v3()?.evidenceScope !== 'pair_tagged_5_1_plus') {
-    mount.appendChild(card({title:'Live comparison is updating'},emptyState('The paired draw aggregates are unavailable. No legacy totals are substituted.')));
-    return;
+// Keep the recommendation tied to the loaded replay, not a cached headline.
+function renderStateSummary(mount) {
+  const replay=state.comparison;
+  const p=replay?.primary, random=replay?.random_control?.primary?.rates;
+  const powerball=state.game==='all'||state.game==='powerball';
+  const summary=h('div',{class:'card state-summary'},
+    h('span',{class:'summary-eyebrow'},'The state of things'),
+    h('h3',null,powerball?'Flagship recommendation: Enhanced · Neuron':'No flagship recommendation for this game yet'),
+    h('p',{class:'summary-intro'},powerball
+      ?'For matching main numbers in Powerball. This is a product recommendation based on the historical replay, not proof of better future odds.'
+      :'The Neuron / Titan replay covers Powerball only. Use the community results below to monitor this game separately.'));
+  if(powerball) {
+    if (!p?.neuron || !p?.titan || !random || ![p.neuron.white_any,p.titan.white_any,random.white_any,p.neuron.prize,p.titan.prize,random.prize].every(Number.isFinite)) {
+      summary.querySelector('h3').textContent='Flagship review unavailable';
+      summary.querySelector('.summary-intro').textContent='The historical comparison could not be loaded. Live results alone do not establish a flagship.';
+    } else {
+      const recommended=p.neuron.white_any>p.titan.white_any && p.neuron.white_any>random.white_any;
+      if(!recommended) {
+        summary.querySelector('h3').textContent='Reassess the flagship recommendation';
+        summary.querySelector('.summary-intro').textContent='The loaded Powerball replay no longer supports choosing Neuron for main-number matching. Review the comparison below.';
+      }
+      const panels=h('div',{class:'summary-panels'},
+        h('div',{class:'summary-panel'},h('span',{class:'summary-eyebrow'},'Main-number matches'),
+          h('strong',null,`${pct(p.neuron.white_any,2)} Neuron`),
+          h('p',null,`${pct(p.titan.white_any,2)} Titan · ${pct(random.white_any,2)} random`),
+          h('p',null,`${signed((p.neuron.white_any-random.white_any)*100,2,' percentage points')} vs random. ${recommended?'Neuron leads this comparison.':'The loaded replay no longer supports the earlier Neuron recommendation.'}`)),
+        h('div',{class:'summary-panel'},h('span',{class:'summary-eyebrow'},'Prize qualification'),
+          h('strong',null,`${pct(p.neuron.prize,2)} Neuron`),
+          h('p',null,`${pct(p.titan.prize,2)} Titan · ${pct(random.prize,2)} random`),
+          h('p',null,'This replay does not establish a reliable prize-winning advantage. Matching one main number is not the same as winning a prize.')));
+      summary.appendChild(panels);
+      summary.appendChild(h('p',{class:'summary-source'},`${fmt(p.draws)} historical Powerball draws · ${(replay.period||[]).join(' – ')} · history already used in development`));
+    }
   }
+  for(const game of gamesInScope()) {
+    const rows=modelResults(game,'0000-00-00',today()).filter(r=>r.pairs);
+    const dates=new Set(rows.flatMap(r=>r.series.map(d=>d.draw)));
+    const best=rows.slice().sort((a,b)=>b.difference-a.difference)[0];
+    const live=h('div',{class:'summary-live'},h('b',null,`${gameName(game)} · community check`),
+      h('p',null,!best?'No paired results available yet.':`${fmt(dates.size)} distinct draws available. ${modelName(best.model)} has the largest draw-weighted difference: ${signed(best.difference*100,2,' pp')} across ${fmt(best.draws)} draws / ${fmt(best.pairs)} paired lines. Models may cover different dates and users; this is not a controlled ranking.`));
+    if(best && best.difference>0 && best.modelHits<=best.controlHits) live.appendChild(h('p',{class:'summary-caution'},`${modelName(best.model)} changes verdict when every line counts: ${fmt(best.modelHits)} model hits vs ${fmt(best.controlHits)} random hits. Its green row reflects the average draw, not a lead in total hits.`));
+    if(best) live.appendChild(h('p',null,'Use live results to watch the models, not to replace the flagship on a few green rows. Enhanced combines engine versions, so its live score cannot identify Neuron’s performance.'));
+    summary.appendChild(live);
+  }
+  summary.appendChild(h('div',{class:'summary-actions'},
+    h('a',{href:'#proof',onClick:()=>{state.evidenceView='live';syncEvidenceTabs();renderAll();}},'See results by draw ↓'),
+    h('a',{href:'#proof',onClick:()=>{state.evidenceView='test';syncEvidenceTabs();renderAll();}},'See historical comparison ↓')));
+  mount.appendChild(summary);
+}
+function syncEvidenceTabs() {
+  $('segEvidence').querySelectorAll('button').forEach(b=>{
+    const active=b.dataset.evidence===state.evidenceView;
+    b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));
+  });
+}
+
+function comparisonRows() {
+  if (v3()?.evidenceScope !== 'pair_tagged_5_1_plus') return [];
+  return (v3()?.pairedDraws || []).filter(r => r.draw <= today());
+}
+function resultClass(r) {
+  return !r.pairs ? 'result-missing' : r.difference > 1e-12 ? 'result-win' : 'result-loss';
+}
+function resultLabel(r) {
+  return !r.pairs ? 'No paired results' : r.difference > 1e-12 ? 'Beat random' : Math.abs(r.difference) <= 1e-12 ? 'Tied random · did not beat' : 'Did not beat random';
+}
+function resultColumns(history=false) {
+  return [
+    {key:'model',label:'Model',render:r=>h('b',null,modelName(r.model))},
+    {key:'engine',label:'Engine',render:r=>r.model!=='enhanced'?'Single engine':r.engine==='unknown_or_mixed'?'Unknown / mixed':r.engine},
+    ...(history?[{key:'draws',label:'Draws',num:true,render:r=>fmt(r.draws)}]:[]),
+    {key:'pairs',label:'Matched lines',num:true,render:r=>fmt(r.pairs)},
+    {key:'modelRate',label:'Model hit rate',num:true,render:r=>h('span',null,pct(r.modelRate,2),r.pairs?h('small',{class:'line-total'},`${fmt(r.modelHits)} hits / ${fmt(r.pairs)} lines`):null)},
+    {key:'controlRate',label:'Random hit rate',num:true,render:r=>h('span',null,pct(r.controlRate,2),r.pairs?h('small',{class:'line-total'},`${fmt(r.controlHits)} hits / ${fmt(r.pairs)} lines`):null)},
+    {key:'difference',label:'Difference',num:true,render:r=>r.pairs?signed(r.difference*100,2,' pp'):'—'},
+    {key:'status',label:history?'By draw / by line':'Result',render:r=>h('span',null,resultLabel(r),history&&r.pairs?h('small',{class:'line-total'},`All lines: ${r.modelHits>r.controlHits?'beat random':r.modelHits===r.controlHits?'tied random':'below random'}`):null)},
+  ];
+}
+function modelResults(game, from, through) {
+  return window.PPAIStats.modelResults(comparisonRows(),{game,from,through,models:MODEL_ORDER});
+}
+function renderModelHistory(mount) {
   for (const game of gamesInScope()) {
-    const rows=window.PPAIStats.select(v3().pairedDraws,{game,model:state.compareModel,from:windowStart(),through:today()});
-    const s=window.PPAIStats.summarize(rows,state.weighting);
-    const label=state.compareModel==='enhanced'?'Enhanced / Neuron · engine version unknown':modelName(state.compareModel);
-    const el=card({title:gameName(game),kicker:label,
-      note:s.pairs?`${fmt(s.draws)} ${s.draws===1?'drawing':'drawings'} · ${fmt(s.pairs)} matched pairs · ${s.first} – ${s.last}`:'No complete pairs for this game, model and date window.',
-      foot:state.compareModel==='enhanced'?'These reports can include Titan and Neuron; their generating artifact was not recorded. This is not an old-versus-new engine test.':'Community observations are incomplete and descriptive. Main-number hits are not necessarily prizes.'});
-    if (!s.pairs) {el.appendChild(emptyState('No data is not a zero-hit result.'));mount.appendChild(el);continue;}
-    el.appendChild(tiles(
-      tile('Model · hit ≥1 main',pct(s.modelRate),{sub:state.weighting==='draw'?'equal weight per drawing':`${fmt(s.modelHits)} / ${fmt(s.pairs)} lines`}),
-      tile('Its paired random',pct(s.controlRate),{sub:'same pairs · same drawings'}),
-      tile('Observed difference',signed(s.difference*100,1,' pp'),{sub:'model minus its paired random'})));
-    const largest=s.series.reduce((a,b)=>b.pairs>a.pairs?b:a);
-    el.appendChild(h('p',{class:'card-foot'},`${fmtDay(largest.draw)} supplies ${pct(largest.pairs/s.pairs)} of pairs. More lines within a drawing do not create additional drawings.`));
-    el.appendChild(table([
-      {key:'draw',label:'Draw',render:x=>x.draw},
-      {key:'pairs',label:'Pairs',num:true,render:x=>fmt(x.pairs)},
-      {key:'model',label:'Model hits',num:true,render:x=>`${fmt(x.modelHits)}/${fmt(x.pairs)} · ${pct(x.modelHits/x.pairs)}`},
-      {key:'random',label:'Paired random hits',num:true,render:x=>`${fmt(x.controlHits)}/${fmt(x.pairs)} · ${pct(x.controlHits/x.pairs)}`},
-      {key:'difference',label:'Difference',num:true,render:x=>signed((x.modelHits-x.controlHits)/x.pairs*100,1,' pp')},
-    ],s.series.slice().reverse()));
-    const reported=(v3().draws||[]).filter(d=>d.lottery===game && d.draw>=windowStart() && d.draw<=today());
-    const unpaired=reported.reduce((n,d)=>n+num(d.byModel?.[state.compareModel]?.n),0)-s.pairs;
-    if (unpaired>0) el.appendChild(h('p',{class:'card-foot'},`${fmt(unpaired)} additional model rows in the available draw ledger are excluded because they lack a complete valid pair.`));
-    el.appendChild(h('details',{class:'metric-details'},h('summary',null,'Other metric: average main-number matches'),
-      h('p',null,`${signed(s.mainDifference,3)} main matches per line versus the paired control. This is a match-count difference, not a hit-rate percentage-point difference.`)));
-    el.appendChild(renderReplacementReview(game));
-    mount.appendChild(el);
+    const rows=modelResults(game,'0000-00-00',today());
+    const available=rows.filter(r=>r.pairs);
+    const first=available.map(r=>r.first).sort()[0];
+    const last=available.map(r=>r.last).sort().at(-1);
+    mount.appendChild(card({title:gameName(game),kicker:'Overall model history',
+      note:first?`${first} – ${last} · all available paired history · each draw weighted equally`:'No paired history available.',
+      foot:'Hit = at least one main number matched. Green = beat paired random; red = did not beat (including ties). Historical results describe this sample. Only Enhanced used different engines; its older reports do not identify the version.'},
+      h('p',{class:'reading-guide'},'Read the colors by draw: every drawing counts equally. Hit totals count every line instead, so the two views can disagree when one draw has most of the tickets.'),
+      table(resultColumns(true),rows,{rowClass:resultClass})));
+  }
+}
+function renderLiveComparison(mount) {
+  mount.appendChild(h('p',{class:'draw-scope'},`${windowStart()} – ${today()} · newest draws first · all models · hit = at least one main number`));
+  const draws=[];
+  for (const game of gamesInScope()) {
+    const paired=comparisonRows().filter(r=>r.lottery===game && r.draw>=windowStart());
+    const reported=(v3()?.draws||[]).filter(r=>r.lottery===game && r.draw>=windowStart() && r.draw<=today());
+    for (const draw of new Set([...paired,...reported].map(r=>r.draw))) draws.push({game,draw});
+  }
+  draws.sort((a,b)=>b.draw.localeCompare(a.draw)||a.game.localeCompare(b.game));
+  if (!draws.length) mount.appendChild(card({title:'No draws in this window'},emptyState('Choose a longer window to see available results.')));
+  for (const {game,draw} of draws) {
+    mount.appendChild(card({title:`${draw} · ${gameName(game)}`,kicker:'Results by model',
+      foot:'Matched lines compare model picks with their paired random picks for this draw. No paired results means unavailable, not a loss.'},
+      table(resultColumns(),modelResults(game,draw,draw),{rowClass:resultClass})));
   }
 }
 
@@ -1140,7 +1209,7 @@ function renderOps(mount) {
   if (pill) {
     pill.classList.toggle('stale', ageMin != null && ageMin > 120);
     pillText.textContent = '';
-    append(pillText, ['Live · ', h('b', null, ageMin == null ? '—' : ageMin < 1 ? 'just now' : ageMin < 60 ? `${ageMin} min ago` : `${Math.round(ageMin / 60)} h ago`), v ? ` · ${v.channel || 'appstore'}` : '']);
+    append(pillText, [params.get('api') ? 'Snapshot · ' : 'Updated · ', h('b', null, ageMin == null ? '—' : ageMin < 1 ? 'just now' : ageMin < 60 ? `${ageMin} min ago` : `${Math.round(ageMin / 60)} h ago`), v ? ` · ${v.channel || 'appstore'}` : '']);
   }
 }
 

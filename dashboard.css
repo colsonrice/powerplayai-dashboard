@@ -413,3 +413,30 @@ footer a { color: var(--muted); text-decoration: underline; text-underline-offse
   .seg button { padding: 5px 10px; font-size: 0.76rem; }
   .topwin .amt { min-width: 0; }
 }
+
+/* Explicit labels accompany color so outcomes remain readable without color. */
+.tbl tr.result-win td { background: #123c2d; color: #c7f8dc; }
+.tbl tr.result-loss td { background: #431f29; color: #ffd3d9; }
+.tbl tr.result-missing td { color: var(--muted); }
+.tbl tr.result-win td:first-child { border-left: 4px solid #53d592; }
+.tbl tr.result-loss td:first-child { border-left: 4px solid #fa7c8d; }
+
+.draw-scope { grid-column: 1 / -1; color: var(--muted); margin: 0; }
+
+.state-summary { border-color: #62558c; padding: 26px; }
+.state-summary h3 { font-size: clamp(1.25rem, 3vw, 1.8rem); line-height: 1.25; margin: 8px 0 12px; }
+.summary-eyebrow { font-family: var(--mono); font-size: .7rem; text-transform: uppercase; letter-spacing: .08em; color: #c4b8ed; }
+.summary-intro { max-width: 850px; color: #d1cedd; }
+.summary-panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 22px 0 14px; }
+.summary-panel { background: #1b192a; border-radius: 12px; padding: 18px; }
+.summary-panel strong { display: block; font-size: 1.4rem; margin: 8px 0; }
+.summary-panel p, .summary-live p { margin: 7px 0 0; color: #c6c2d4; font-size: .88rem; line-height: 1.55; }
+.summary-source { color: #aaa4bc; font-size: .78rem; }
+.summary-live { border-top: 1px solid var(--border); padding-top: 16px; margin-top: 16px; }
+.summary-actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 22px; }
+.summary-actions a { color: #e6dcff; padding: 9px 13px; border: 1px solid #62558c; border-radius: 8px; font-size: .85rem; }
+.line-total { display: block; font-size: .7rem; margin-top: 4px; opacity: .86; }
+.reading-guide { color: #c6c2d4; font-size: .82rem; margin: 12px 0; line-height: 1.5; }
+@media (max-width: 650px) { .summary-panels { grid-template-columns: 1fr; } .state-summary { padding: 18px; } }
+
+.summary-live .summary-caution { color: #f4d496; }
