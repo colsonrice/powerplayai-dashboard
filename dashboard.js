@@ -311,7 +311,7 @@ function chartTable(spec) {
   const thead = h('thead', null, h('tr', null, h('th', null, spec.xLabel || ''), ...spec.datasets.map((d) => h('th', { class: 'num' }, d.label)), multi ? h('th', { class: 'num' }, 'Total') : null));
   const rows = spec.labels.map((l, i) => {
     const vals = spec.datasets.map((d) => num(d.data[i]));
-    return h('tr', null, h('td', null, String(l)), ...vals.map((v) => h('td', { class: 'num' }, spec.percent ? pct(v / 100, 1) : fmt(v, spec.decimals || 0))), multi ? h('td', { class: 'num' }, spec.percent ? '' : fmt(sum(vals))) : null);
+    return h('tr', null, h('td', null, String(l)), ...vals.map((v, j) => h('td', { class: 'num' }, spec.datasets[j].data[i] == null ? '—' : spec.percent ? pct(v / 100, 1) : fmt(v, spec.decimals || 0))), multi ? h('td', { class: 'num' }, spec.percent ? '' : fmt(sum(vals))) : null);
   });
   if (!spec.percent && multi) {
     rows.push(h('tr', null, h('td', null, h('b', null, 'Total')), ...spec.datasets.map((d) => h('td', { class: 'num' }, h('b', null, fmt(sum(d.data), spec.decimals || 0)))), h('td', { class: 'num' }, h('b', null, fmt(sum(spec.datasets.map((d) => sum(d.data))))))));
@@ -426,7 +426,9 @@ function heatCell(value, opts = {}) {
   if (value == null || Number.isNaN(Number(value))) return h('span', { class: 'heat empty-cell' }, '—');
   const v = Number(value), max = opts.max || 1;
   const a = clamp(v / max, 0, 1);
-  return h('span', { class: 'heat', style: { background: `rgba(139,123,255,${(0.08 + a * 0.55).toFixed(2)})`, color: a > 0.55 ? INK : '#c9c6ff' } }, opts.pct ? pct(v, 0) : fmt(v));
+  // opts.plain: a provisional value keeps its number and drops the colour.
+  const style = opts.plain ? { color: MUTED } : { background: `rgba(139,123,255,${(0.08 + a * 0.55).toFixed(2)})`, color: a > 0.55 ? INK : '#c9c6ff' };
+  return h('span', { class: 'heat', style }, opts.pct ? pct(v, 0) : fmt(v));
 }
 function statusChip(kind, text) { return h('span', { class: 'status-chip ' + kind }, text); }
 function balls(predicted, winning, lottery, opts = {}) {
@@ -830,24 +832,34 @@ function renderLoop(mount) {
     cohortTable || emptyState('Cohorts appear once devices report an install date.')));
 
   // --- Retention ---
+  // D-N = share of devices seen again in the 7 days that start N days after
+  // install, over the devices whose 7 days are over (`n`, of which `seen`).
+  // A cell that rests on under half its cohort is provisional: it keeps its
+  // number, loses its colour and stays off the chart.
+  const RET = [{ key: 'd1', label: 'D1', n: 'n1', seen: 'seen1' }, { key: 'd7', label: 'D7', n: 'n7', seen: 'seen7' }, { key: 'd30', label: 'D30', n: 'n30', seen: 'seen30' }];
+  const retRate = (r, w) => (r[w.key] == null ? null : num(r[w.n]) ? num(r[w.seen]) / num(r[w.n]) : num(r[w.key]));
+  const retThin = (r, w) => r[w.n] != null && num(r[w.n]) * 2 < num(r.size);
+  const retCell = (r, w) => {
+    const rate = retRate(r, w);
+    if (rate == null) return heatCell(null);
+    return h('span', null, heatCell(rate, { pct: true, max: 1, plain: retThin(r, w) }),
+      r[w.n] == null ? null : h('small', { class: 'benchmark-delta' }, `${fmt(r[w.seen])} of ${fmt(r[w.n])}`));
+  };
   const retSorted = ret.slice().sort((a, b) => String(b.cohortWeek).localeCompare(String(a.cohortWeek)));
-  mount.appendChild(card({ title: 'Retention', kicker: 'Weekly install cohorts · seen again after 1, 7, 30 days', cls: 'half', foot: 'Dashes mean the window has not elapsed yet. "Seen" = any batch from the device on or after that day.' },
+  mount.appendChild(card({ title: 'Retention', kicker: 'Weekly install cohorts · seen again on days 1–7, 7–13, 30–36', cls: 'half',
+    foot: 'Share of devices seen again in the 7 days that start 1, 7 or 30 days after install ("seen" = any batch from the device). A device counts once its 7 days are over, so "x of y" can be fewer than the cohort; a cell that rests on under half the cohort is left uncoloured and off the chart. A dash means no device has finished that window yet, or the window starts before 2026-09-10, when daily history begins.' },
     retSorted.length ? table([
       { key: 'cohortWeek', label: 'Cohort', render: (r) => h('b', null, r.cohortWeek) },
       { key: 'size', label: 'Devices', num: true, render: (r) => fmt(r.size) },
-      { key: 'd1', label: 'D1', num: true, render: (r) => heatCell(r.d1 == null ? null : num(r.d1), { pct: true, max: 1 }) },
-      { key: 'd7', label: 'D7', num: true, render: (r) => heatCell(r.d7 == null ? null : num(r.d7), { pct: true, max: 1 }) },
-      { key: 'd30', label: 'D30', num: true, render: (r) => heatCell(r.d30 == null ? null : num(r.d30), { pct: true, max: 1 }) },
+      ...RET.map((w) => ({ key: w.key, label: w.label, num: true, render: (r) => retCell(r, w) })),
     ], retSorted) : emptyState('Retention needs at least one cohort with an install date.')));
   const retAsc = ret.slice().sort((a, b) => String(a.cohortWeek).localeCompare(String(b.cohortWeek)));
+  const retPoint = (r, w) => { const rate = retThin(r, w) ? null : retRate(r, w); return rate == null ? null : +(rate * 100).toFixed(1); };
   mount.appendChild(chartCard('loop', {
     title: 'Retention by cohort', kicker: 'Same table, as lines', cls: 'half',
-    spec: { type: 'line', percent: true, labels: retAsc.map((r) => r.cohortWeek), xLabel: 'Cohort', datasets: [
-      { label: 'D1', data: retAsc.map((r) => r.d1 == null ? null : +(num(r.d1) * 100).toFixed(1)), color: CAT[0] },
-      { label: 'D7', data: retAsc.map((r) => r.d7 == null ? null : +(num(r.d7) * 100).toFixed(1)), color: CAT[1] },
-      { label: 'D30', data: retAsc.map((r) => r.d30 == null ? null : +(num(r.d30) * 100).toFixed(1)), color: CAT[2] },
-    ] },
-    empty: 'Retention needs at least one cohort with an install date.', foot: 'Small cohorts swing hard; read the table\'s device counts alongside.',
+    spec: { type: 'line', percent: true, labels: retAsc.map((r) => r.cohortWeek), xLabel: 'Cohort',
+      datasets: RET.map((w, i) => ({ label: w.label, data: retAsc.map((r) => retPoint(r, w)), color: CAT[i] })) },
+    empty: 'Retention needs at least one cohort with an install date.', foot: 'Small cohorts swing hard; read the table\'s counts alongside. A cohort joins a line once at least half its devices are measured.',
   }));
 
   // --- Daily activity small multiples ---
