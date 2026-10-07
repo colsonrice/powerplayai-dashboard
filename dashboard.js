@@ -847,7 +847,7 @@ function renderLoop(mount) {
   };
   const retSorted = ret.slice().sort((a, b) => String(b.cohortWeek).localeCompare(String(a.cohortWeek)));
   mount.appendChild(card({ title: 'Retention', kicker: 'Weekly install cohorts · seen again on days 1–7, 7–13, 30–36', cls: 'half',
-    foot: 'Share of devices seen again in the 7 days that start 1, 7 or 30 days after install ("seen" = any batch from the device). A device counts once its 7 days are over, so "x of y" can be fewer than the cohort; a cell that rests on under half the cohort is left uncoloured and off the chart. A dash means no device has finished that window yet, or the window starts before 2026-09-10, when daily history begins.' },
+    foot: 'Share of devices seen again in the 7 days that start 1, 7 or 30 days after install. "Seen" = a day the device sent data or reported a session. A device counts once those 7 days are over, and only if they start on or after 2026-09-10, when daily history begins; so "x of y" can be fewer than the cohort, and a dash means no device counts. A cell that rests on under half the cohort is left uncoloured and off the chart.' },
     retSorted.length ? table([
       { key: 'cohortWeek', label: 'Cohort', render: (r) => h('b', null, r.cohortWeek) },
       { key: 'size', label: 'Devices', num: true, render: (r) => fmt(r.size) },
